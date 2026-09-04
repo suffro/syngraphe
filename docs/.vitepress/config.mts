@@ -59,7 +59,7 @@ const sidebar = [
     collapsed: false,
     items: [
       { text: "What is Syngraphe", link: "/getting-started/what-is-syngraphe" },
-      { text: "Why repository context", link: "/getting-started/why-syngraphe" },
+      { text: "Why Syngraphe", link: "/getting-started/why-syngraphe" },
       { text: "Installation", link: "/getting-started/installation" },
       { text: "Quickstart", link: "/getting-started/quickstart" },
     ],

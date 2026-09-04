@@ -1,10 +1,10 @@
 ---
-title: Why repository context
+title: Why Syngraphe
 description: The case for keeping project knowledge inside the repository, in Markdown, versioned by Git and shared between humans and agents.
 order: 2
 ---
 
-# Why repository context
+# Why Syngraphe
 
 ## The problem
 

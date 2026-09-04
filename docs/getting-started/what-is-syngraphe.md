@@ -75,6 +75,6 @@ deliberately postponed.
 
 ## Next
 
-- [Why repository context](/getting-started/why-syngraphe) — the argument in full.
+- [Why Syngraphe](/getting-started/why-syngraphe) — the argument in full.
 - [Installation](/getting-started/installation) — requirements and install options.
 - [Quickstart](/getting-started/quickstart) — a first run, start to finish.
