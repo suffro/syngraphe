@@ -135,6 +135,11 @@ function renderIndex({ hostname, version, sidebar }) {
   return lines.join("\n");
 }
 
+/** `<code>x</code>` is how inline code is written inside a component's slot, where Markdown's own
+ *  backticks are not parsed. Coming back out, it is backticks again. */
+const inlineCodeToBackticks = (html) =>
+  html.replace(/<\/?code>/gi, "`").replace(/\s+/g, " ").trim();
+
 /**
  * Reduce a page to what someone would read if the site were a text file.
  *
@@ -146,13 +151,27 @@ function renderIndex({ hostname, version, sidebar }) {
  * resolves against a page, and this text will be read somewhere that is not one.
  */
 function toPlainMarkdown(source, hostname) {
-  return source
-    .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
-    .replace(/\]\((\/[^)\s]*)\)/g, `](${hostname}$1)`)
-    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
-    .replace(/^[ \t]*<(?:HomePage|SubPagesList)\b[^>]*\/?>[ \t]*$/gim, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return (
+    source
+      .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
+      .replace(/\]\((\/[^)\s]*)\)/g, `](${hostname}$1)`)
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, "")
+      .replace(/^[ \t]*<(?:HomePage|SubPagesList)\b[^>]*\/?>[ \t]*$/gim, "")
+      // A tab group is one page's several readings. Flattened, each panel becomes a section under
+      // the title its tab carried: dropping the tags alone would splice two walkthroughs into one
+      // sequence that reads as a single contradictory set of steps.
+      .replace(/^[ \t]*<\/?Tabs\b[^>]*>[ \t]*$/gim, "")
+      .replace(/^[ \t]*<Tab\s+title="([^"]*)"[^>]*>[ \t]*$/gim, "### $1")
+      .replace(/^[ \t]*<\/Tab>[ \t]*$/gim, "")
+      // The one line that must never be lost in the flattening: it says whether the block beneath
+      // it is output the tool really produces or prose invented to illustrate a point.
+      .replace(
+        /<ExampleNote(?:\s+label="([^"]*)")?\s*>([\s\S]*?)<\/ExampleNote>/gi,
+        (_match, label, body) => `> **${label ?? "Example"}** — ${inlineCodeToBackticks(body)}`,
+      )
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
 }
 
 /** Every page but the home page opens with its own H1, and that heading is a better section title

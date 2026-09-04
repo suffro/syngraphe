@@ -1,8 +1,11 @@
 import { h } from "vue";
 import DefaultTheme from "vitepress/theme";
+import ExampleNote from "./ExampleNote.vue";
 import HomePage from "./HomePage.vue";
 import PageActions from "./PageActions.vue";
 import SubPagesList from "./SubPagesList.vue";
+import Tab from "./tabs/Tab.vue";
+import Tabs from "./tabs/Tabs.vue";
 import "./custom.css";
 
 export default {
@@ -19,5 +22,8 @@ export default {
   enhanceApp({ app }) {
     app.component("HomePage", HomePage);
     app.component("SubPagesList", SubPagesList);
+    app.component("Tabs", Tabs);
+    app.component("Tab", Tab);
+    app.component("ExampleNote", ExampleNote);
   },
 };

@@ -32,6 +32,8 @@ Write:
 Skip: anything derivable from the file tree, class-by-class inventories, and anything that will be
 wrong in a month.
 
+<ExampleNote>Invented, to show the level of detail. No command writes anything like it.</ExampleNote>
+
 ```md
 ## Important constraints
 
@@ -55,7 +57,10 @@ creates a second source of truth that will disagree eventually.
 
 ## `state/current.md`
 
-The most perishable file, and the most useful when it is fresh. Four headings, kept short:
+The most perishable file, and the most useful when it is fresh. Four headings, kept short —
+`syngraphe init` writes the headings and leaves them empty.
+
+<ExampleNote>Invented, to show what filling them in looks like.</ExampleNote>
 
 ```md
 ## Current focus
@@ -87,6 +92,8 @@ One Markdown file per significant decision. Not every commit deserves one — th
 future reader would otherwise ask "why on earth is it like this?".
 
 A shape that works:
+
+<ExampleNote>A suggested shape, filled with placeholder prose. Nothing enforces it.</ExampleNote>
 
 ```md
 # Managed-block padding is unconditionally reversible
@@ -124,6 +131,8 @@ default reading path where it would compete with what is currently true.
 
 The router. The generated version points at the standard files, grouped by how often they are
 relevant:
+
+<ExampleNote label="Generated">The body of <code>.context/index.md</code> as <code>syngraphe init</code> writes it — the one generated document that arrives with content.</ExampleNote>
 
 ```md
 ## Always relevant

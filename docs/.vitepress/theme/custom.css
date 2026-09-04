@@ -141,6 +141,143 @@
   border-left: 2px solid var(--vp-c-brand-1);
 }
 
+/* ── Example notes ─────────────────────────────────────────────── */
+
+/*
+ * The label that marks invented content, set deliberately quieter than the block it introduces: it
+ * is a warning label, not a heading, and one loud enough to compete with the code would be read
+ * instead of it. Small, muted, and tight against what it describes.
+ */
+.syg-example {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  /* Pulled down onto the block below so the pair reads as one unit rather than as a stray line. */
+  margin: 16px 0 6px !important;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--vp-c-text-3);
+}
+
+.syg-example-tag {
+  flex: none;
+  padding: 1px 7px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 5px;
+  background: var(--vp-c-bg-soft);
+  font-family: var(--vp-font-family-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* Aligned to the text's cap height rather than its baseline, which the padding would otherwise
+     drop the pill below. */
+  transform: translateY(-1px);
+}
+
+/* Inline code inside the note follows the note, not the body text: at body size it would be the
+   loudest thing in a line meant to be quiet. */
+.syg-example code {
+  font-size: 0.92em;
+  color: inherit;
+}
+
+/* ── Tabs ──────────────────────────────────────────────────────── */
+
+/*
+ * Two readings of the same page, side by side.
+ *
+ * The active tab is marked by contrast and elevation rather than by a tint: the palette has two
+ * tones and no accent hue, so the open tab is the one lifted to the page background while the rest
+ * stay on the recessed strip.
+ */
+.syg-tabs {
+  margin: 24px 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--vp-c-bg);
+}
+
+/* The panels carry their own headings so the flattened Markdown twin keeps the tab labels; on the
+   page those labels are already the buttons, so the hover anchors would be duplicate noise. */
+.syg-tabs .header-anchor {
+  display: none !important;
+}
+
+.syg-tabs__nav {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  overflow-x: auto;
+}
+
+.syg-tabs__button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--vp-c-text-2);
+  font-size: 13.5px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.syg-tabs__button:hover {
+  color: var(--vp-c-text-1);
+}
+
+.syg-tabs__button.is-active {
+  color: var(--vp-c-text-1);
+  background: var(--vp-c-bg);
+  border-color: var(--vp-c-divider);
+  font-weight: 650;
+}
+
+.syg-tabs__button:focus-visible,
+.syg-tabs__panel:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 2px;
+}
+
+.syg-tabs__content {
+  padding: 4px 20px 20px;
+}
+
+/* A panel's first heading would otherwise arrive with the h2 rule and 44px above it, immediately
+   under the button that already names it. */
+.syg-tabs__panel > :first-child {
+  margin-top: 16px;
+}
+
+.syg-tabs__panel > :last-child {
+  margin-bottom: 0;
+}
+
+/* Steps inside a panel. h4 rather than h3 keeps them out of the page outline, where headings from
+   the closed tab would otherwise point at nothing visible. */
+.syg-tabs__panel h4 {
+  margin: 28px 0 0;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.syg-tabs__panel > h4:first-child {
+  margin-top: 16px;
+}
+
+@media (max-width: 640px) {
+  .syg-tabs__content {
+    padding: 4px 14px 16px;
+  }
+}
+
 /* ── Home page ─────────────────────────────────────────────────── */
 
 .syg-home {

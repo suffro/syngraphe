@@ -25,6 +25,13 @@ registry (Claude shim, Cursor and Codex native), and the deterministic check reg
 - The docs site publishes a Markdown surface for agents: `llms.txt`, `llms-full.txt`, a `.md` twin
   per page, `Accept: text/markdown` negotiation through a Cloudflare Pages Function, per-page
   Markdown and "Ask an AI" menus, and a `robots.txt` that names the assistant crawlers explicitly.
+- The docs distinguish generated content from illustration explicitly. Every block that is invented
+  prose carries an `ExampleNote` label above it, outside the fence; blocks that are real output or
+  real generated files are labelled too. The quickstart was the page where this mattered most: its
+  filled-in `truth/architecture.md` read as something `init` writes, which it never does.
+- The quickstart now offers two routes in a `Tabs` group — Quick (no `--dry-run`) and Guided — plus
+  a "What `init` writes" section listing all nine files. Its terminal transcripts were re-captured
+  from real runs rather than edited by hand.
 - The manifest declares `"protocol": "repository-context"`, added to schema v1 rather than to a v2.
   It is what identifies a `.context/` directory, so the generic name can stay generic; a manifest
   naming another protocol is `unrelated`, and a manifest with no `protocol` falls back to the shape
