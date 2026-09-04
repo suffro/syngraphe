@@ -1,11 +1,15 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/public/static/svg/logo-dark.svg">
-    <img src="brand-assets/svg/logo-light.svg" alt="Syngraphe" width="320">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/public/static/svg/logo-light.svg">
+    <img src="docs/public/static/svg/logo-light.svg" alt="Syngraphe" width="80">
   </picture>
 </p>
 
+<span align="center">
+
 # Syngraphe
+
+</span>
 
 Syngraphe keeps repository context versioned, current, and understandable by both humans and coding
 agents.
