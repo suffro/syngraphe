@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="brand-assets/svg/logo-dark.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="docs/public/svg/logo-dark.svg">
     <img src="brand-assets/svg/logo-light.svg" alt="Syngraphe" width="320">
   </picture>
 </p>
