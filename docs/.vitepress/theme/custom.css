@@ -1,0 +1,626 @@
+/*
+ * Syngraphe theme.
+ *
+ * The brand is the logo: a near-black mark on light, a near-white mark on dark. There is no accent
+ * hue, so the palette below is the two mark colours and the greys between them. Anything that would
+ * normally carry colour — active navigation, buttons, focus rings — carries contrast instead.
+ */
+
+:root {
+  /* The two mark colours, named once. */
+  --syn-ink: #1c1c1f;
+  --syn-paper: #d9d9d9;
+
+  --vp-c-brand-1: var(--syn-ink);
+  --vp-c-brand-2: #3a3a41;
+  --vp-c-brand-3: #6b6b73;
+  --vp-c-brand-soft: rgba(28, 28, 31, 0.08);
+
+  --vp-button-brand-bg: var(--syn-ink);
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-border: var(--syn-ink);
+  --vp-button-brand-hover-bg: #34343b;
+  --vp-button-brand-hover-text: #ffffff;
+  --vp-button-brand-hover-border: #34343b;
+  --vp-button-brand-active-bg: #101013;
+  --vp-button-brand-active-text: #ffffff;
+  --vp-button-brand-active-border: #101013;
+
+  /* Link colour is a mid grey, not the ink: a link the exact colour of body text is invisible.
+     The underline below carries the rest of the signal. */
+  --syn-link: #4a4a52;
+  --syn-hairline: rgba(28, 28, 31, 0.12);
+
+  /* Added lines in the diff panel. Barely a wash: the line is marked by its rule and by being the
+     only fully legible text in the block, so the fill only has to hint at a band. */
+  --syn-diff-add-bg: rgba(28, 28, 31, 0.03);
+  --syn-diff-add-rule: rgba(28, 28, 31, 0.3);
+}
+
+.dark {
+  --vp-c-brand-1: var(--syn-paper);
+  --vp-c-brand-2: #f2f2f2;
+  --vp-c-brand-3: #8f8f98;
+  --vp-c-brand-soft: rgba(217, 217, 217, 0.1);
+
+  --vp-button-brand-bg: var(--syn-paper);
+  --vp-button-brand-text: var(--syn-ink);
+  --vp-button-brand-border: var(--syn-paper);
+  --vp-button-brand-hover-bg: #ffffff;
+  --vp-button-brand-hover-text: var(--syn-ink);
+  --vp-button-brand-hover-border: #ffffff;
+  --vp-button-brand-active-bg: #c4c4c4;
+  --vp-button-brand-active-text: var(--syn-ink);
+  --vp-button-brand-active-border: #c4c4c4;
+
+  --syn-link: #c8c8d0;
+  --syn-hairline: rgba(217, 217, 217, 0.16);
+
+  --syn-diff-add-bg: rgba(217, 217, 217, 0.035);
+  --syn-diff-add-rule: rgba(217, 217, 217, 0.28);
+}
+
+/* ── Navigation ────────────────────────────────────────────────── */
+
+.VPNavBarTitle .logo {
+  height: 22px;
+  width: auto;
+  margin-right: 9px;
+}
+
+.VPNavBarTitle .title {
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+}
+
+.VPNavBarMenuLink.active {
+  color: var(--vp-c-brand-1) !important;
+}
+
+.VPSidebarItem.is-active > .item .indicator {
+  background-color: var(--vp-c-brand-1);
+}
+
+.VPSidebarItem.is-active > .item .link .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 550;
+}
+
+/* ── Content ───────────────────────────────────────────────────── */
+
+/*
+ * Links are underlined rather than tinted. In a two-tone palette there is no hue left to mark a
+ * link with, and a link that differs from body text only in lightness is one most readers never
+ * notice — the underline says "link" without needing a colour the brand does not have.
+ */
+.vp-doc a:not(.header-anchor):not(.VPBadge) {
+  color: var(--syn-link);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: var(--syn-hairline);
+  transition: color 0.15s ease, text-decoration-color 0.15s ease;
+}
+
+.vp-doc a:not(.header-anchor):not(.VPBadge):hover {
+  color: var(--vp-c-brand-1);
+  text-decoration-color: currentColor;
+}
+
+/* A rule above every section: the pages are long and reference-shaped, and the hairline is what
+   lets a reader scan them without relying on font size alone. */
+.vp-doc h2 {
+  border-top: 1px solid var(--vp-c-divider);
+  padding-top: 24px;
+  margin-top: 44px;
+  letter-spacing: -0.01em;
+}
+
+.vp-doc h1 {
+  letter-spacing: -0.02em;
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+}
+
+.vp-doc th {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Finding and exit codes read as identifiers, so they are set as such wherever they appear. */
+.vp-doc td code,
+.vp-doc th code {
+  font-size: 0.85em;
+}
+
+.vp-doc blockquote {
+  border-left: 2px solid var(--vp-c-brand-1);
+}
+
+/* ── Home page ─────────────────────────────────────────────────── */
+
+.syn-home {
+  --syn-max: 1152px;
+}
+
+/*
+ * Inline code on the home page.
+ *
+ * The default theme styles inline code only inside `.vp-doc`, and these sections live outside it —
+ * so a command in prose arrived with a monospace font and nothing else, which is not enough to read
+ * as a command. This is the theme's own treatment, restated where it does not reach.
+ */
+.syn-home code {
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: var(--vp-c-default-soft);
+  font-family: var(--vp-font-family-mono);
+  font-size: 0.86em;
+  color: var(--vp-c-text-1);
+}
+
+.syn-step h3 code {
+  padding: 3px 8px;
+  font-size: 0.92em;
+}
+
+.syn-container {
+  max-width: var(--syn-max);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.syn-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 72px 0 64px;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+/* The grid is the one decorative element: faint ruled paper, the surface the context is written
+   on. It is masked to fade out, so it never competes with the text over it. */
+.syn-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, var(--syn-hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--syn-hairline) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
+  pointer-events: none;
+}
+
+.syn-hero-inner {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 56px;
+  /* Top-aligned: the two columns have different heights, and centring the short one against the
+     tall one leaves a band of empty space under the shorter of them. */
+  align-items: start;
+}
+
+.syn-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  background: var(--vp-c-bg-soft);
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0.02em;
+  color: var(--vp-c-text-2);
+}
+
+.syn-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--vp-c-brand-1);
+}
+
+.syn-hero h1 {
+  margin: 18px 0 0;
+  font-size: clamp(2.4rem, 5vw, 3.4rem);
+  line-height: 1.08;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+}
+
+.syn-hero p.syn-lede {
+  margin: 18px 0 0;
+  font-size: 1.08rem;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+  max-width: 34rem;
+}
+
+.syn-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 30px;
+}
+
+.syn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.syn-btn--solid {
+  background: var(--vp-button-brand-bg);
+  border-color: var(--vp-button-brand-border);
+  color: var(--vp-button-brand-text) !important;
+}
+
+.syn-btn--solid:hover {
+  background: var(--vp-button-brand-hover-bg);
+  border-color: var(--vp-button-brand-hover-border);
+}
+
+.syn-btn--ghost {
+  color: var(--vp-c-text-1) !important;
+  border-color: var(--vp-c-divider);
+}
+
+.syn-btn--ghost:hover {
+  background: var(--vp-c-bg-soft);
+  border-color: var(--vp-c-text-3);
+}
+
+.syn-btn:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 3px;
+}
+
+.syn-btn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+/*
+ * The diff panel.
+ *
+ * Drawn rather than screenshotted, so it stays crisp, follows the colour scheme and can be selected
+ * and read by a screen reader. Additions are marked by a rule and a `+` in the gutter rather than by
+ * the usual green: the palette has two tones, and inventing a hue here for one component would be
+ * the only colour on the page.
+ */
+.syn-panel {
+  margin: 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-alt);
+  overflow: hidden;
+}
+
+.syn-panel-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+}
+
+.syn-panel-file {
+  color: var(--vp-c-text-1);
+  font-weight: 600;
+}
+
+.syn-panel-meta {
+  color: var(--vp-c-text-3);
+}
+
+.syn-diff {
+  padding: 14px 0;
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.syn-diff-line {
+  display: flex;
+  gap: 8px;
+  padding: 0 14px 0 12px;
+  border-left: 2px solid transparent;
+  color: var(--vp-c-text-3);
+  /* Wrapped, not scrolled: the block contains real sentences, and a horizontal scrollbar in a hero
+     hides exactly the half of them that carries the meaning. */
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.syn-diff-line.is-add {
+  border-left-color: var(--syn-diff-add-rule);
+  background: var(--syn-diff-add-bg);
+  color: var(--vp-c-text-1);
+}
+
+.syn-diff-sign {
+  flex: none;
+  width: 0.6em;
+  color: var(--vp-c-text-3);
+}
+
+.syn-diff-line.is-add .syn-diff-sign {
+  color: var(--syn-diff-add-rule);
+}
+
+.syn-diff-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.syn-caption {
+  margin: 0;
+  padding: 12px 16px 14px;
+  border-top: 1px solid var(--vp-c-divider);
+  background: var(--vp-c-bg-soft);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--vp-c-text-3);
+}
+
+
+/* ── Sections ──────────────────────────────────────────────────── */
+
+.syn-section {
+  padding: 68px 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+}
+
+.syn-section:last-of-type {
+  border-bottom: 0;
+}
+
+.syn-eyebrow {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--vp-c-text-3);
+}
+
+.syn-section h2 {
+  margin: 12px 0 0;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.syn-section p.syn-sub {
+  margin: 14px 0 0;
+  max-width: 46rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.65;
+}
+
+.syn-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 38px;
+}
+
+.syn-card {
+  padding: 22px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+}
+
+.syn-card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.syn-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+}
+
+.syn-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 38px;
+  counter-reset: syn-step;
+}
+
+.syn-step {
+  position: relative;
+  padding: 22px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+}
+
+.syn-step::before {
+  counter-increment: syn-step;
+  content: counter(syn-step, decimal-leading-zero);
+  display: block;
+  margin-bottom: 12px;
+  font-family: var(--vp-font-family-mono);
+  font-size: 12px;
+  color: var(--vp-c-text-3);
+}
+
+.syn-step h3 {
+  margin: 0 0 8px;
+  font-size: 0.98rem;
+  font-weight: 650;
+}
+
+.syn-step p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+}
+
+.syn-step code {
+  font-size: 0.85em;
+}
+
+.syn-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 40px;
+  align-items: center;
+  margin-top: 38px;
+}
+
+.syn-tree {
+  margin: 0;
+  padding: 22px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-alt);
+  font-family: var(--vp-font-family-mono);
+  font-size: 12.5px;
+  line-height: 1.8;
+  overflow-x: auto;
+}
+
+.syn-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.syn-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+}
+
+.syn-list li:last-child {
+  border-bottom: 0;
+}
+
+.syn-list strong {
+  color: var(--vp-c-text-1);
+  font-weight: 650;
+}
+
+.syn-cta {
+  text-align: center;
+  padding: 76px 0 88px;
+}
+
+.syn-cta h2 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.1rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+
+.syn-cta p {
+  margin: 14px auto 0;
+  max-width: 34rem;
+  color: var(--vp-c-text-2);
+  line-height: 1.65;
+}
+
+.syn-cta .syn-actions {
+  justify-content: center;
+}
+
+/* ── Section landing lists ─────────────────────────────────────── */
+
+.syn-subpages {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.syn-subpage {
+  display: block;
+  padding: 20px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+  text-decoration: none !important;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.syn-subpage:hover {
+  border-color: var(--vp-c-text-3);
+  background: var(--vp-c-bg);
+}
+
+.syn-subpage .syn-subpage-title {
+  display: block;
+  font-weight: 650;
+  color: var(--vp-c-text-1);
+  letter-spacing: -0.01em;
+}
+
+.syn-subpage .syn-subpage-text {
+  display: block;
+  margin-top: 6px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--vp-c-text-2);
+}
+
+/* ── Narrow screens ────────────────────────────────────────────── */
+
+@media (max-width: 960px) {
+  .syn-hero-inner,
+  .syn-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 36px;
+  }
+
+  .syn-cards,
+  .syn-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .syn-cards,
+  .syn-steps,
+  .syn-subpages {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .syn-hero {
+    padding: 48px 0 44px;
+  }
+
+  .syn-section {
+    padding: 48px 0;
+  }
+}

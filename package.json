@@ -1,0 +1,60 @@
+{
+  "name": "syngraphe",
+  "version": "0.1.0",
+  "description": "Keeps repository context versioned, current, and understandable by both humans and coding agents.",
+  "license": "Apache-2.0",
+  "author": "Lorenzo S.",
+  "homepage": "https://syngraphe.dev",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Suffro/syngraphe.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Suffro/syngraphe/issues"
+  },
+  "keywords": [
+    "repository-context",
+    "context",
+    "agents",
+    "agents-md",
+    "ai-agents",
+    "documentation",
+    "cli",
+    "git"
+  ],
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "bin": {
+    "syngraphe": "dist/cli/bin.js",
+    "syg": "dist/cli/bin.js"
+  },
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "docs:dev": "npm --prefix docs run dev",
+    "docs:build": "npm --prefix docs run build",
+    "docs:preview": "npm --prefix docs run preview"
+  },
+  "dependencies": {
+    "commander": "^14.0.1"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.12",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

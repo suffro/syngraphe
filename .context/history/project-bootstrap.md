@@ -1,7 +1,3 @@
-You are in the repo syngraphe on macos
-
----
-
 You are starting a new open-source developer tool called Syngraphe.
 
 Syngraphe is a lightweight, Git-native repository-context system for keeping project knowledge correct, current, reviewable, versioned, human-readable, and consumable by AI coding agents.

@@ -1,0 +1,8 @@
+# Cloudflare Pages config for the Syngraphe documentation site.
+# The Pages project root is this `docs/` directory.
+
+name = "syngraphe"
+compatibility_date = "2025-01-01"
+
+# VitePress build output, relative to this file.
+pages_build_output_dir = ".vitepress/dist"
