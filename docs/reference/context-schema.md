@@ -156,12 +156,17 @@ Two short files explaining what belongs in each directory. They are excluded fro
 
 `syngraphe check` verifies that local paths mentioned in context Markdown resolve:
 
-- **Markdown links** — `[text](path)` — resolve relative to the document, as Markdown requires.
-- **Inline code** — `` `truth/architecture.md` `` — resolves relative to the document, and also
-  from the repository root, because prose commonly quotes a repository-relative path.
+- **Markdown links** — `[text](path)` — resolve relative to the document, as Markdown requires, and
+  are checked whatever they point at.
+- **Inline code** — `` `truth/architecture.md` `` — is prose, so only document references are
+  checked: something ending in `.md`. It may resolve relative to the document, from the repository
+  root, or from `.context/` — the last because that is how `index.md` names its own siblings, and a
+  note in `history/` or a record in `decisions/` means the same file by the same name.
 
-Only references that look like paths are considered: they end with `.md` or `/`. Anchors, external
-URLs and fenced code blocks are ignored. A reference that resolves neither way is `LINK001`.
+A directory named in inline code — `` `.cursor/rules/` ``, `` `src/` `` — is not treated as a
+reference: prose mentions directories that need not exist here, and a missing context directory is
+already reported by the structure check. Anchors, external URLs and fenced code blocks are ignored.
+A reference that resolves no way at all is `LINK001`.
 
 ## Compatibility
 

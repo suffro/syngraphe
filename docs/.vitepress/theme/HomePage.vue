@@ -72,21 +72,21 @@ const capabilities = [
 </script>
 
 <template>
-  <div class="syn-home">
+  <div class="syg-home">
     <!-- ── Hero ─────────────────────────────────────────────── -->
-    <section class="syn-hero">
-      <div class="syn-grid" aria-hidden="true"></div>
+    <section class="syg-hero">
+      <div class="syg-grid" aria-hidden="true"></div>
 
-      <div class="syn-container syn-hero-inner">
+      <div class="syg-container syg-hero-inner">
         <div>
-          <span class="syn-badge">
-            <span class="syn-badge-dot"></span>
-            v0.1 · context schema v1 · no network, no AI
+          <span class="syg-badge">
+            <span class="syg-badge-dot"></span>
+            v0.1 · context schema v1
           </span>
 
           <h1>Repository context that stays true.</h1>
 
-          <p class="syn-lede">
+          <p class="syg-lede">
             Syngraphe keeps a repository's own context in a small <code>.context/</code> directory
             of Markdown, one set of files your team and your coding agents both read.
             <code>AGENTS.md</code> points the agents at it; <code>syngraphe check</code> verifies
@@ -94,12 +94,12 @@ const capabilities = [
             edited.
           </p>
 
-          <div class="syn-actions">
-            <a class="syn-btn syn-btn--solid" :href="withBase('/getting-started/quickstart')">
+          <div class="syg-actions">
+            <a class="syg-btn syg-btn--solid" :href="withBase('/getting-started/quickstart')">
               Quickstart
             </a>
             <a
-              class="syn-btn syn-btn--ghost"
+              class="syg-btn syg-btn--ghost"
               href="https://github.com/suffro/syngraphe"
               target="_blank"
               rel="noopener noreferrer"
@@ -112,6 +112,13 @@ const capabilities = [
               <span>GitHub</span>
             </a>
           </div>
+          <div class="syg-divider"></div>
+          <div class="syg-sections-hooks">
+            <a href="#pillars"><code>The concept</code></a>
+            <a href="#how-it-works"><code>How it works</code></a>
+            <a href="#the-layout"><code>The Layout</code></a>
+            <a href="#capabilities"><code>Capabilities</code></a>
+          </div>
         </div>
 
         <!--
@@ -120,25 +127,25 @@ const capabilities = [
           What is worth showing first is the artefact rather than the run: this is the entire change
           `init` makes to a file somebody already wrote, which is the claim the whole tool rests on.
         -->
-        <figure class="syn-panel">
-          <div class="syn-panel-bar">
-            <span class="syn-panel-file">AGENTS.md</span>
-            <span class="syn-panel-meta">+10 −0</span>
+        <figure class="syg-panel">
+          <div class="syg-panel-bar">
+            <span class="syg-panel-file">AGENTS.md</span>
+            <span class="syg-panel-meta">+10 −0</span>
           </div>
 
-          <div class="syn-diff">
+          <div class="syg-diff">
             <div
               v-for="(line, index) in patch"
               :key="index"
-              class="syn-diff-line"
+              class="syg-diff-line"
               :class="line.added ? 'is-add' : 'is-context'"
             >
-              <span class="syn-diff-sign" aria-hidden="true">{{ line.added ? "+" : " " }}</span
-              ><span class="syn-diff-text">{{ line.text }}</span>
+              <span class="syg-diff-sign" aria-hidden="true">{{ line.added ? "+" : " " }}</span
+              ><span class="syg-diff-text">{{ line.text }}</span>
             </div>
           </div>
 
-          <figcaption class="syn-caption">
+          <figcaption class="syg-caption">
             Everything <code>syngraphe init</code> adds to an <code>AGENTS.md</code> you already
             have. Remove the block and the file is byte for byte what it was.
           </figcaption>
@@ -147,18 +154,18 @@ const capabilities = [
     </section>
 
     <!-- ── Pillars ──────────────────────────────────────────── -->
-    <section class="syn-section">
-      <div class="syn-container">
-        <span class="syn-eyebrow">The position</span>
+    <section class="syg-section" id="pillars">
+      <div class="syg-container">
+        <span class="syg-eyebrow">The concept</span>
         <h2>Project knowledge belongs where the code is.</h2>
-        <p class="syn-sub">
+        <p class="syg-sub">
           Architecture notes live in chat threads, conventions live in one person's head, and the
           reason behind a decision lives nowhere at all. Syngraphe puts that knowledge in the
           repository, in plain Markdown, where it is reviewed like anything else.
         </p>
 
-        <div class="syn-cards">
-          <div v-for="pillar in pillars" :key="pillar.title" class="syn-card">
+        <div class="syg-cards">
+          <div v-for="pillar in pillars" :key="pillar.title" class="syg-card">
             <h3>{{ pillar.title }}</h3>
             <p>{{ pillar.text }}</p>
           </div>
@@ -167,17 +174,17 @@ const capabilities = [
     </section>
 
     <!-- ── How it works ─────────────────────────────────────── -->
-    <section class="syn-section">
-      <div class="syn-container">
-        <span class="syn-eyebrow">How it works</span>
+    <section class="syg-section" id="how-it-works">
+      <div class="syg-container">
+        <span class="syg-eyebrow">How it works</span>
         <h2>Three commands, no surprises.</h2>
-        <p class="syn-sub">
+        <p class="syg-sub">
           Each one also answers to the shorthand <code>syg</code>: <code>syg init</code>,
           <code>syg check</code>.
         </p>
 
-        <div class="syn-steps">
-          <div class="syn-step">
+        <div class="syg-steps">
+          <div class="syg-step">
             <h3><code>syngraphe init</code></h3>
             <p>
               Creates <code>.context/</code> and adds a managed block to <code>AGENTS.md</code>.
@@ -185,14 +192,14 @@ const capabilities = [
               that same plan and nothing else.
             </p>
           </div>
-          <div class="syn-step">
+          <div class="syg-step">
             <h3><code>syngraphe status</code></h3>
             <p>
               A fast, read-only summary: schema, which context documents exist, how many decisions
               and history entries, which agents are wired up, and how many findings are open.
             </p>
           </div>
-          <div class="syn-step">
+          <div class="syg-step">
             <h3><code>syngraphe check</code></h3>
             <p>
               The deterministic checks: structure, manifest, managed blocks, internal references and
@@ -205,13 +212,13 @@ const capabilities = [
     </section>
 
     <!-- ── What gets created ────────────────────────────────── -->
-    <section class="syn-section">
-      <div class="syn-container">
-        <span class="syn-eyebrow">The layout</span>
+    <section class="syg-section" id="the-layout">
+      <div class="syg-container">
+        <span class="syg-eyebrow">The layout</span>
         <h2>Four kinds of context, separated by lifecycle.</h2>
 
-        <div class="syn-split">
-<pre class="syn-tree">.context/
+        <div class="syg-split">
+<pre class="syg-tree">.context/
 ├── manifest.json
 ├── index.md
 ├── truth/
@@ -224,7 +231,7 @@ const capabilities = [
 └── history/
     └── README.md</pre>
 
-          <ul class="syn-list">
+          <ul class="syg-list">
             <li>
               <strong>truth/</strong> — what is stably true: architecture, conventions, domain
               concepts, constraints and invariants.
@@ -247,13 +254,13 @@ const capabilities = [
     </section>
 
     <!-- ── Capabilities ─────────────────────────────────────── -->
-    <section class="syn-section">
-      <div class="syn-container">
-        <span class="syn-eyebrow">What it gives you</span>
+    <section class="syg-section" id="capabilities">
+      <div class="syg-container">
+        <span class="syg-eyebrow">What it gives you</span>
         <h2>Small tool, strict guarantees.</h2>
 
-        <div class="syn-cards">
-          <div v-for="capability in capabilities" :key="capability.title" class="syn-card">
+        <div class="syg-cards">
+          <div v-for="capability in capabilities" :key="capability.title" class="syg-card">
             <h3>{{ capability.title }}</h3>
             <p>{{ capability.text }}</p>
           </div>
@@ -262,19 +269,19 @@ const capabilities = [
     </section>
 
     <!-- ── CTA ──────────────────────────────────────────────── -->
-    <section class="syn-cta">
-      <div class="syn-container">
+    <section class="syg-cta">
+      <div class="syg-container">
         <h2>Start with a dry run.</h2>
         <p>
           Syngraphe writes nothing until you have seen the plan. Point it at a repository you
           already have and read what it proposes.
         </p>
-        <div class="syn-actions">
-          <a class="syn-btn syn-btn--solid" :href="withBase('/getting-started/installation')">
+        <div class="syg-actions">
+          <a class="syg-btn syg-btn--solid" :href="withBase('/getting-started/installation')">
             Install
           </a>
           <a
-            class="syn-btn syn-btn--ghost"
+            class="syg-btn syg-btn--ghost"
             href="https://github.com/suffro/syngraphe"
             target="_blank"
             rel="noopener noreferrer"
@@ -286,3 +293,28 @@ const capabilities = [
     </section>
   </div>
 </template>
+
+
+<style>
+
+.syg-actions {
+  margin-bottom: 15px;
+}
+
+.syg-sections-hooks {
+  font-size: medium;
+  display: flex;
+  justify-content: start;
+  gap: 10px;
+}
+
+.syg-sections-hooks a {
+  opacity: 0.35;
+}
+
+.syg-sections-hooks a:hover {
+  cursor: pointer;
+  opacity: 1;
+}
+
+</style>

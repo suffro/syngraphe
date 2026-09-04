@@ -70,10 +70,24 @@ function stripAnchor(target: string): string {
   return hash === -1 ? target : target.slice(0, hash);
 }
 
+/**
+ * Inline code is prose, so only a document reference counts: something ending in `.md`.
+ *
+ * Directory paths used to qualify too, and that was wrong in both directions. It caught almost
+ * nothing real — a missing context directory is already reported by the structure check — while
+ * flagging every directory a document merely talks about, including hypothetical ones such as
+ * `.cursor/rules/` in a repository that uses neither.
+ *
+ * Markdown links are unaffected: a link is unambiguously a pointer, so it is checked whatever it
+ * points at.
+ */
 function looksLikePath(value: string): boolean {
   if (value.includes(" ")) return false;
-  const withoutAnchor = stripAnchor(value);
-  return withoutAnchor.endsWith(".md") || withoutAnchor.endsWith("/");
+  const target = stripAnchor(value);
+  if (!target.endsWith(".md")) return false;
+  // A bare `.md` is documentation naming the extension, not a document.
+  const basename = target.slice(target.lastIndexOf("/") + 1);
+  return basename.length > ".md".length;
 }
 
 function isLocalPath(target: string): boolean {

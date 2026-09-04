@@ -82,9 +82,11 @@ all is reported for a repository that shows no sign of using Claude.
 | --------- | -------- | --------------------------------------------------------------------- |
 | `LINK001` | error    | A context document references a local path that does not exist. The finding carries the file and the line. |
 
-Markdown links resolve relative to the document. Inline-code references — `` `truth/architecture.md` ``
-— are also accepted if they resolve from the repository root, because prose commonly quotes a
-repository-relative path. Fenced code blocks, anchors and external URLs are ignored.
+Markdown links resolve relative to the document and are checked whatever they point at. Inline code
+is prose, so only `.md` references are checked — `` `truth/architecture.md` `` — and they may
+resolve relative to the document, from the repository root, or from `.context/`. A directory named
+in inline code is not treated as a reference. Fenced code blocks, anchors and external URLs are
+ignored. See [context schema](/reference/context-schema) for the reasoning.
 
 ### State — `STATE`
 

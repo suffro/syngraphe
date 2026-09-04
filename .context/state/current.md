@@ -17,6 +17,14 @@ registry (Claude shim, Cursor and Codex native), and the deterministic check reg
 - Documentation site in `docs/` (VitePress): getting started, guides, reference and concepts, with a
   monochrome theme built from the two logo colours. Deployed as a Cloudflare Pages project rooted at
   `docs/`; the production hostname is declared once in `docs/.vitepress/config.mts`.
+- The managed block's second line now says to keep the context accurate in the same change, without
+  a "significant changes" threshold. Changing it again after publication would report drift in every
+  initialized repository.
+- The reference check distinguishes prose from pointers, after the archived brief under `history/`
+  produced six false `LINK001` findings. See `decisions/0002-inline-code-references-are-prose.md`.
+- The docs site publishes a Markdown surface for agents: `llms.txt`, `llms-full.txt`, a `.md` twin
+  per page, `Accept: text/markdown` negotiation through a Cloudflare Pages Function, per-page
+  Markdown and "Ask an AI" menus, and a `robots.txt` that names the assistant crawlers explicitly.
 
 ## Next
 

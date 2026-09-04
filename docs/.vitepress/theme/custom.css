@@ -8,17 +8,17 @@
 
 :root {
   /* The two mark colours, named once. */
-  --syn-ink: #1c1c1f;
-  --syn-paper: #d9d9d9;
+  --syg-ink: #1c1c1f;
+  --syg-paper: #d9d9d9;
 
-  --vp-c-brand-1: var(--syn-ink);
+  --vp-c-brand-1: var(--syg-ink);
   --vp-c-brand-2: #3a3a41;
   --vp-c-brand-3: #6b6b73;
   --vp-c-brand-soft: rgba(28, 28, 31, 0.08);
 
-  --vp-button-brand-bg: var(--syn-ink);
+  --vp-button-brand-bg: var(--syg-ink);
   --vp-button-brand-text: #ffffff;
-  --vp-button-brand-border: var(--syn-ink);
+  --vp-button-brand-border: var(--syg-ink);
   --vp-button-brand-hover-bg: #34343b;
   --vp-button-brand-hover-text: #ffffff;
   --vp-button-brand-hover-border: #34343b;
@@ -28,36 +28,36 @@
 
   /* Link colour is a mid grey, not the ink: a link the exact colour of body text is invisible.
      The underline below carries the rest of the signal. */
-  --syn-link: #4a4a52;
-  --syn-hairline: rgba(28, 28, 31, 0.12);
+  --syg-link: #4a4a52;
+  --syg-hairline: rgba(28, 28, 31, 0.12);
 
   /* Added lines in the diff panel. Barely a wash: the line is marked by its rule and by being the
      only fully legible text in the block, so the fill only has to hint at a band. */
-  --syn-diff-add-bg: rgba(28, 28, 31, 0.03);
-  --syn-diff-add-rule: rgba(28, 28, 31, 0.3);
+  --syg-diff-add-bg: rgba(28, 28, 31, 0.03);
+  --syg-diff-add-rule: rgba(28, 28, 31, 0.3);
 }
 
 .dark {
-  --vp-c-brand-1: var(--syn-paper);
+  --vp-c-brand-1: var(--syg-paper);
   --vp-c-brand-2: #f2f2f2;
   --vp-c-brand-3: #8f8f98;
   --vp-c-brand-soft: rgba(217, 217, 217, 0.1);
 
-  --vp-button-brand-bg: var(--syn-paper);
-  --vp-button-brand-text: var(--syn-ink);
-  --vp-button-brand-border: var(--syn-paper);
+  --vp-button-brand-bg: var(--syg-paper);
+  --vp-button-brand-text: var(--syg-ink);
+  --vp-button-brand-border: var(--syg-paper);
   --vp-button-brand-hover-bg: #ffffff;
-  --vp-button-brand-hover-text: var(--syn-ink);
+  --vp-button-brand-hover-text: var(--syg-ink);
   --vp-button-brand-hover-border: #ffffff;
   --vp-button-brand-active-bg: #c4c4c4;
-  --vp-button-brand-active-text: var(--syn-ink);
+  --vp-button-brand-active-text: var(--syg-ink);
   --vp-button-brand-active-border: #c4c4c4;
 
-  --syn-link: #c8c8d0;
-  --syn-hairline: rgba(217, 217, 217, 0.16);
+  --syg-link: #c8c8d0;
+  --syg-hairline: rgba(217, 217, 217, 0.16);
 
-  --syn-diff-add-bg: rgba(217, 217, 217, 0.035);
-  --syn-diff-add-rule: rgba(217, 217, 217, 0.28);
+  --syg-diff-add-bg: rgba(217, 217, 217, 0.035);
+  --syg-diff-add-rule: rgba(217, 217, 217, 0.28);
 }
 
 /* ── Navigation ────────────────────────────────────────────────── */
@@ -95,11 +95,11 @@
  * notice — the underline says "link" without needing a colour the brand does not have.
  */
 .vp-doc a:not(.header-anchor):not(.VPBadge) {
-  color: var(--syn-link);
+  color: var(--syg-link);
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 3px;
-  text-decoration-color: var(--syn-hairline);
+  text-decoration-color: var(--syg-hairline);
   transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 
@@ -143,8 +143,8 @@
 
 /* ── Home page ─────────────────────────────────────────────────── */
 
-.syn-home {
-  --syn-max: 1152px;
+.syg-home {
+  --syg-max: 1152px;
 }
 
 /*
@@ -154,7 +154,7 @@
  * so a command in prose arrived with a monospace font and nothing else, which is not enough to read
  * as a command. This is the theme's own treatment, restated where it does not reach.
  */
-.syn-home code {
+.syg-home code {
   padding: 2px 6px;
   border-radius: 5px;
   background: var(--vp-c-default-soft);
@@ -163,18 +163,18 @@
   color: var(--vp-c-text-1);
 }
 
-.syn-step h3 code {
+.syg-step h3 code {
   padding: 3px 8px;
   font-size: 0.92em;
 }
 
-.syn-container {
-  max-width: var(--syn-max);
+.syg-container {
+  max-width: var(--syg-max);
   margin: 0 auto;
   padding: 0 24px;
 }
 
-.syn-hero {
+.syg-hero {
   position: relative;
   overflow: hidden;
   padding: 72px 0 64px;
@@ -183,19 +183,19 @@
 
 /* The grid is the one decorative element: faint ruled paper, the surface the context is written
    on. It is masked to fade out, so it never competes with the text over it. */
-.syn-grid {
+.syg-grid {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, var(--syn-hairline) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--syn-hairline) 1px, transparent 1px);
+    linear-gradient(to right, var(--syg-hairline) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--syg-hairline) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 20%, transparent 75%);
   pointer-events: none;
 }
 
-.syn-hero-inner {
+.syg-hero-inner {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
@@ -205,7 +205,7 @@
   align-items: start;
 }
 
-.syn-badge {
+.syg-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -219,14 +219,14 @@
   color: var(--vp-c-text-2);
 }
 
-.syn-badge-dot {
+.syg-badge-dot {
   width: 6px;
   height: 6px;
   border-radius: 999px;
   background: var(--vp-c-brand-1);
 }
 
-.syn-hero h1 {
+.syg-hero h1 {
   margin: 18px 0 0;
   font-size: clamp(2.4rem, 5vw, 3.4rem);
   line-height: 1.08;
@@ -234,7 +234,7 @@
   letter-spacing: -0.035em;
 }
 
-.syn-hero p.syn-lede {
+.syg-hero p.syg-lede {
   margin: 18px 0 0;
   font-size: 1.08rem;
   line-height: 1.6;
@@ -242,14 +242,14 @@
   max-width: 34rem;
 }
 
-.syn-actions {
+.syg-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 30px;
 }
 
-.syn-btn {
+.syg-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -265,33 +265,33 @@
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.syn-btn--solid {
+.syg-btn--solid {
   background: var(--vp-button-brand-bg);
   border-color: var(--vp-button-brand-border);
   color: var(--vp-button-brand-text) !important;
 }
 
-.syn-btn--solid:hover {
+.syg-btn--solid:hover {
   background: var(--vp-button-brand-hover-bg);
   border-color: var(--vp-button-brand-hover-border);
 }
 
-.syn-btn--ghost {
+.syg-btn--ghost {
   color: var(--vp-c-text-1) !important;
   border-color: var(--vp-c-divider);
 }
 
-.syn-btn--ghost:hover {
+.syg-btn--ghost:hover {
   background: var(--vp-c-bg-soft);
   border-color: var(--vp-c-text-3);
 }
 
-.syn-btn:focus-visible {
+.syg-btn:focus-visible {
   outline: 2px solid var(--vp-c-brand-1);
   outline-offset: 3px;
 }
 
-.syn-btn svg {
+.syg-btn svg {
   width: 18px;
   height: 18px;
   flex: none;
@@ -305,7 +305,7 @@
  * the usual green: the palette has two tones, and inventing a hue here for one component would be
  * the only colour on the page.
  */
-.syn-panel {
+.syg-panel {
   margin: 0;
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
@@ -313,7 +313,7 @@
   overflow: hidden;
 }
 
-.syn-panel-bar {
+.syg-panel-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -325,23 +325,23 @@
   font-size: 12px;
 }
 
-.syn-panel-file {
+.syg-panel-file {
   color: var(--vp-c-text-1);
   font-weight: 600;
 }
 
-.syn-panel-meta {
+.syg-panel-meta {
   color: var(--vp-c-text-3);
 }
 
-.syn-diff {
+.syg-diff {
   padding: 14px 0;
   font-family: var(--vp-font-family-mono);
   font-size: 12px;
   line-height: 1.7;
 }
 
-.syn-diff-line {
+.syg-diff-line {
   display: flex;
   gap: 8px;
   padding: 0 14px 0 12px;
@@ -353,28 +353,28 @@
   word-break: break-word;
 }
 
-.syn-diff-line.is-add {
-  border-left-color: var(--syn-diff-add-rule);
-  background: var(--syn-diff-add-bg);
+.syg-diff-line.is-add {
+  border-left-color: var(--syg-diff-add-rule);
+  background: var(--syg-diff-add-bg);
   color: var(--vp-c-text-1);
 }
 
-.syn-diff-sign {
+.syg-diff-sign {
   flex: none;
   width: 0.6em;
   color: var(--vp-c-text-3);
 }
 
-.syn-diff-line.is-add .syn-diff-sign {
-  color: var(--syn-diff-add-rule);
+.syg-diff-line.is-add .syg-diff-sign {
+  color: var(--syg-diff-add-rule);
 }
 
-.syn-diff-text {
+.syg-diff-text {
   flex: 1;
   min-width: 0;
 }
 
-.syn-caption {
+.syg-caption {
   margin: 0;
   padding: 12px 16px 14px;
   border-top: 1px solid var(--vp-c-divider);
@@ -387,16 +387,16 @@
 
 /* ── Sections ──────────────────────────────────────────────────── */
 
-.syn-section {
+.syg-section {
   padding: 68px 0;
   border-bottom: 1px solid var(--vp-c-divider);
 }
 
-.syn-section:last-of-type {
+.syg-section:last-of-type {
   border-bottom: 0;
 }
 
-.syn-eyebrow {
+.syg-eyebrow {
   font-size: 12px;
   font-weight: 650;
   letter-spacing: 0.12em;
@@ -404,7 +404,7 @@
   color: var(--vp-c-text-3);
 }
 
-.syn-section h2 {
+.syg-section h2 {
   margin: 12px 0 0;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 700;
@@ -412,59 +412,59 @@
   line-height: 1.2;
 }
 
-.syn-section p.syn-sub {
+.syg-section p.syg-sub {
   margin: 14px 0 0;
   max-width: 46rem;
   color: var(--vp-c-text-2);
   line-height: 1.65;
 }
 
-.syn-cards {
+.syg-cards {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin-top: 38px;
 }
 
-.syn-card {
+.syg-card {
   padding: 22px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
   background: var(--vp-c-bg-soft);
 }
 
-.syn-card h3 {
+.syg-card h3 {
   margin: 0 0 8px;
   font-size: 1rem;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
-.syn-card p {
+.syg-card p {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.6;
   color: var(--vp-c-text-2);
 }
 
-.syn-steps {
+.syg-steps {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
   margin-top: 38px;
-  counter-reset: syn-step;
+  counter-reset: syg-step;
 }
 
-.syn-step {
+.syg-step {
   position: relative;
   padding: 22px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
 }
 
-.syn-step::before {
-  counter-increment: syn-step;
-  content: counter(syn-step, decimal-leading-zero);
+.syg-step::before {
+  counter-increment: syg-step;
+  content: counter(syg-step, decimal-leading-zero);
   display: block;
   margin-bottom: 12px;
   font-family: var(--vp-font-family-mono);
@@ -472,24 +472,24 @@
   color: var(--vp-c-text-3);
 }
 
-.syn-step h3 {
+.syg-step h3 {
   margin: 0 0 8px;
   font-size: 0.98rem;
   font-weight: 650;
 }
 
-.syn-step p {
+.syg-step p {
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.6;
   color: var(--vp-c-text-2);
 }
 
-.syn-step code {
+.syg-step code {
   font-size: 0.85em;
 }
 
-.syn-split {
+.syg-split {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 40px;
@@ -497,7 +497,7 @@
   margin-top: 38px;
 }
 
-.syn-tree {
+.syg-tree {
   margin: 0;
   padding: 22px;
   border: 1px solid var(--vp-c-divider);
@@ -509,13 +509,13 @@
   overflow-x: auto;
 }
 
-.syn-list {
+.syg-list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.syn-list li {
+.syg-list li {
   padding: 14px 0;
   border-bottom: 1px solid var(--vp-c-divider);
   font-size: 0.92rem;
@@ -523,48 +523,48 @@
   color: var(--vp-c-text-2);
 }
 
-.syn-list li:last-child {
+.syg-list li:last-child {
   border-bottom: 0;
 }
 
-.syn-list strong {
+.syg-list strong {
   color: var(--vp-c-text-1);
   font-weight: 650;
 }
 
-.syn-cta {
+.syg-cta {
   text-align: center;
   padding: 76px 0 88px;
 }
 
-.syn-cta h2 {
+.syg-cta h2 {
   margin: 0;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 700;
   letter-spacing: -0.025em;
 }
 
-.syn-cta p {
+.syg-cta p {
   margin: 14px auto 0;
   max-width: 34rem;
   color: var(--vp-c-text-2);
   line-height: 1.65;
 }
 
-.syn-cta .syn-actions {
+.syg-cta .syg-actions {
   justify-content: center;
 }
 
 /* ── Section landing lists ─────────────────────────────────────── */
 
-.syn-subpages {
+.syg-subpages {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 8px;
 }
 
-.syn-subpage {
+.syg-subpage {
   display: block;
   padding: 20px;
   border: 1px solid var(--vp-c-divider);
@@ -574,19 +574,19 @@
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 
-.syn-subpage:hover {
+.syg-subpage:hover {
   border-color: var(--vp-c-text-3);
   background: var(--vp-c-bg);
 }
 
-.syn-subpage .syn-subpage-title {
+.syg-subpage .syg-subpage-title {
   display: block;
   font-weight: 650;
   color: var(--vp-c-text-1);
   letter-spacing: -0.01em;
 }
 
-.syn-subpage .syn-subpage-text {
+.syg-subpage .syg-subpage-text {
   display: block;
   margin-top: 6px;
   font-size: 0.88rem;
@@ -594,33 +594,42 @@
   color: var(--vp-c-text-2);
 }
 
+.syg-divider {
+  height: 1px !important;
+  width: 100% !important;
+  background-color: var(--vp-c-divider);
+  display: block !important;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 /* ── Narrow screens ────────────────────────────────────────────── */
 
 @media (max-width: 960px) {
-  .syn-hero-inner,
-  .syn-split {
+  .syg-hero-inner,
+  .syg-split {
     grid-template-columns: minmax(0, 1fr);
     gap: 36px;
   }
 
-  .syn-cards,
-  .syn-steps {
+  .syg-cards,
+  .syg-steps {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 640px) {
-  .syn-cards,
-  .syn-steps,
-  .syn-subpages {
+  .syg-cards,
+  .syg-steps,
+  .syg-subpages {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .syn-hero {
+  .syg-hero {
     padding: 48px 0 44px;
   }
 
-  .syn-section {
+  .syg-section {
     padding: 48px 0;
   }
 }

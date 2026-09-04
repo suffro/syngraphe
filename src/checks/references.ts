@@ -42,8 +42,12 @@ export const referencesCheck: Check = {
 
 /**
  * Markdown links resolve relative to the document, as Markdown requires.
- * Inline-code references are prose, so a path that resolves from the
- * repository root is accepted too rather than reported as broken.
+ *
+ * Inline-code references are prose, and prose names a document the way a reader would: sometimes
+ * relative to the document, sometimes from the repository root, and — inside `.context/` — very
+ * often relative to the context root, because that is how `index.md` names its own siblings. A
+ * decision record or an archived note writing `truth/architecture.md` means the same file
+ * `index.md` means, so all three are accepted before calling a reference broken.
  */
 async function resolves(
   repository: Repository,
@@ -52,7 +56,12 @@ async function resolves(
   kind: "link" | "code",
 ): Promise<boolean> {
   const candidates = [path.posix.normalize(path.posix.join(directory, target))];
-  if (kind === "code") candidates.push(path.posix.normalize(target));
+  if (kind === "code") {
+    candidates.push(
+      path.posix.normalize(target),
+      path.posix.normalize(path.posix.join(CONTEXT_DIRECTORY, target)),
+    );
+  }
 
   for (const candidate of candidates) {
     if (candidate.startsWith("..")) continue;

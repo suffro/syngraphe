@@ -10,6 +10,12 @@ order: 1
 syngraphe [options] [command]
 ```
 
+Or you can also use the shorthand `syg`:
+
+```text
+syg [options] [command]
+```
+
 | Option          | Effect                     |
 | --------------- | -------------------------- |
 | `-v, --version` | Print the version and exit |

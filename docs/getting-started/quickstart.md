@@ -9,7 +9,15 @@ order: 4
 This walks through a first run on a repository you already have. Nothing is written until step 2,
 and you will have seen the exact plan before it is.
 
-## 1. See the plan
+## 1. Install Syngraphe
+
+```bash
+npm install -g syngraphe
+```
+
+For more details checkout the [installation page](/getting-started/installation).
+
+## 2. See the plan
 
 ```bash
 cd my-project
@@ -50,7 +58,7 @@ Three things are worth noticing:
 
 `--dry-run` builds the same plan the real run applies. It is not a separate code path.
 
-## 2. Apply it
+## 3. Apply it
 
 ```bash
 syngraphe init
@@ -80,7 +88,7 @@ git diff
 
 Additive, small, and reviewable. That is the whole change to your existing files.
 
-## 3. Write the context
+## 4. Write the context
 
 The generated templates are headings and nothing else — deliberately, so nobody is tempted to leave
 generated prose in place. Start with two files:

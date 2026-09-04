@@ -102,9 +102,9 @@ usually a symptom of something larger — an interrupted merge, most often.
 A context document points at a file that is not there. The finding names the document and the line.
 
 The usual causes are a renamed file, a deleted document that `index.md` still lists, or a typo.
-Markdown links resolve relative to the document containing them; inline-code references are also
-accepted if they resolve from the repository root, since prose often quotes a repository-relative
-path.
+Markdown links resolve relative to the document containing them. An inline-code reference is checked
+only when it names a `.md` file, and it is accepted if it resolves relative to the document, from the
+repository root, or from `.context/` — so a directory mentioned in prose never produces this finding.
 
 ## `Expected context file is missing.` — `CTX002`
 

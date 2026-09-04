@@ -12,6 +12,7 @@
     "noUnusedParameters": true,
     "exactOptionalPropertyTypes": false,
     "verbatimModuleSyntax": true,
+    "allowJs": true,
     "allowImportingTsExtensions": true,
     "rewriteRelativeImportExtensions": true,
     "erasableSyntaxOnly": true,

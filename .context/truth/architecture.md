@@ -34,6 +34,12 @@ Agent integrations and checks are registries consumed by commands, never hardcod
 - `docs/` — the VitePress documentation site (syngraphe.dev), with its own `package.json`. Content is
   Markdown under `docs/getting-started/`, `docs/guides/`, `docs/reference/` and `docs/concepts/`; the
   branded theme lives in `docs/.vitepress/theme/`.
+- The site also publishes a machine-readable surface: `docs/.vitepress/llms.mjs` generates
+  `llms.txt`, `llms-full.txt` and one Markdown twin per page at build time, and
+  `docs/functions/_middleware.js` serves those twins to `Accept: text/markdown`. Three places derive
+  a twin's path from a route — the generator, the middleware and the head link in
+  `docs/.vitepress/config.mts` — and `test/docs-markdown.test.ts` is what holds them to the same
+  answer.
 
 ## Data flow
 

@@ -127,6 +127,53 @@ describe("syngraphe check", () => {
     assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
   });
 
+  it("still catches a broken reference written as inline code", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(".context/decisions/0001-choice.md", "# Choice\n\nSee `truth/gone.md`.\n");
+
+    const { code, report } = await check(repo);
+
+    assert.equal(code, 1);
+    assert.ok(codes(report).includes("LINK001"));
+  });
+
+  it("accepts a context-relative reference from a nested document", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    // `truth/architecture.md` from `history/` means what `index.md` means by it.
+    await repo.write(".context/history/note.md", "# Note\n\nSuperseded `truth/architecture.md`.\n");
+
+    const { report } = await check(repo);
+
+    assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
+  });
+
+  it("does not treat a bare file extension as a reference", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(".context/decisions/0001-format.md", "# Format\n\nOnly `.md` is checked.\n");
+
+    const { code, report } = await check(repo);
+
+    assert.equal(code, 0);
+    assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
+  });
+
+  it("does not treat a directory named in prose as a reference", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(
+      ".context/truth/conventions.md",
+      "# Conventions\n\nVendor rules in `.cursor/rules/` are not used here, and neither is `src/`.\n",
+    );
+
+    const { code, report } = await check(repo);
+
+    assert.equal(code, 0);
+    assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
+  });
+
   it("reports an invalid manifest", async () => {
     const repo = await repoWith();
     assert.equal((await runCli(repo, ["init"])).code, 0);

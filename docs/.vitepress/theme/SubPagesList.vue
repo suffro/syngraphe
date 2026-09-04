@@ -17,10 +17,10 @@ const items = computed(() =>
 </script>
 
 <template>
-  <div class="syn-subpages">
-    <a v-for="page in items" :key="page.url" class="syn-subpage" :href="withBase(page.url)">
-      <span class="syn-subpage-title">{{ page.title }}</span>
-      <span v-if="page.description" class="syn-subpage-text">{{ page.description }}</span>
+  <div class="syg-subpages">
+    <a v-for="page in items" :key="page.url" class="syg-subpage" :href="withBase(page.url)">
+      <span class="syg-subpage-title">{{ page.title }}</span>
+      <span v-if="page.description" class="syg-subpage-text">{{ page.description }}</span>
     </a>
   </div>
 </template>

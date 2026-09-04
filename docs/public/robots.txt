@@ -1,4 +1,59 @@
+# https://syngraphe.dev — Syngraphe documentation
+#
+# Everything published here exists to be read. Syngraphe is an Apache-2.0, vendor-neutral tool
+# whose whole premise is that project knowledge should be readable by both people and coding
+# agents; a documentation site that fenced parts of itself off would be arguing against itself.
+
 User-agent: *
 Allow: /
+# The one URL with nothing of its own to index.
+Disallow: /404.html
+
+# Assistants that fetch a page to answer someone's question, and the crawlers that train on the
+# text, are named here even though the group above already allows them. A crawler whose own name
+# matches a group ignores `*` entirely, so this list is what keeps a later tightening of the default
+# from dropping them by accident. Being described accurately by a model someone asked about keeping
+# repository context current is worth more to this project than not being read.
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: Google-Extended
+User-agent: GoogleOther
+User-agent: Applebot
+User-agent: Applebot-Extended
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: MistralAI-User
+User-agent: DuckAssistBot
+User-agent: Amazonbot
+User-agent: meta-externalagent
+User-agent: meta-externalfetcher
+User-agent: cohere-ai
+User-agent: cohere-training-data-crawler
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: AI2Bot
+User-agent: YouBot
+User-agent: Diffbot
+Allow: /
+Disallow: /404.html
+
+# No Crawl-delay: the site is static, served from a CDN, and the major crawlers ignore the directive
+# anyway — slowing them down would only make an answer about Syngraphe staler.
+
+# Two files exist for readers that would rather not crawl two dozen pages to answer one question.
+# There is no directive for them, so a comment is the only place to say so:
+#
+#   https://syngraphe.dev/llms.txt       every page, with a one-line description of each
+#   https://syngraphe.dev/llms-full.txt  the same pages' full text, in one document
+#
+# Both are generated at build time from the site itself, so neither can go stale.
+#
+# Any single page is available the same way: send `Accept: text/markdown`, or append `.md` to its
+# path — https://syngraphe.dev/reference/cli.md. What comes back is the Markdown the page was
+# written in, not a conversion of the HTML you would otherwise have to take apart.
 
 Sitemap: https://syngraphe.dev/sitemap.xml

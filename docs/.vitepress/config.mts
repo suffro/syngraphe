@@ -1,5 +1,6 @@
 import { defineConfig, type HeadConfig } from "vitepress";
 import pkg from "../../package.json" with { type: "json" };
+import { markdownFileFor, recordPage, writeLlmsFiles } from "./llms.mjs";
 
 const packageVersion = pkg.version;
 
@@ -145,10 +146,8 @@ export default defineConfig({
   // names the URL it really lives at. The Open Graph tags exist because a documentation link is
   // usually met in a chat client or an issue tracker, where a bare URL says nothing.
   transformPageData(pageData) {
-    const route = `/${pageData.relativePath}`
-      .replace(/index\.md$/, "")
-      .replace(/\.md$/, "")
-      .replace(/\/+/g, "/");
+    // Recording the page is what feeds llms.txt and the Markdown twins; see ./llms.mjs.
+    const route = recordPage(pageData);
 
     const head: HeadConfig[] = (pageData.frontmatter.head ??= []);
     // `||`, not `??`: a page that declares no description gets an empty string rather than
@@ -158,6 +157,17 @@ export default defineConfig({
 
     head.push(
       ["link", { rel: "canonical", href: `${hostname}${route}` }],
+      // The Markdown twin of this page, discoverable without asking for it. The Function in
+      // `functions/` serves the same file to anything sending `Accept: text/markdown`, and
+      // `PageActions.vue` reads this link rather than deriving the path a fourth time.
+      [
+        "link",
+        {
+          rel: "alternate",
+          type: "text/markdown",
+          href: `${hostname}/${markdownFileFor(route)}`,
+        },
+      ],
       ["meta", { property: "og:type", content: "website" }],
       ["meta", { property: "og:site_name", content: "Syngraphe" }],
       ["meta", { property: "og:title", content: title }],
@@ -176,6 +186,24 @@ export default defineConfig({
     if (route === "/") {
       head.push(["script", { type: "application/ld+json" }, JSON.stringify(structuredData)]);
     }
+  },
+
+  // The Markdown surface, written after the pages are rendered: /llms.txt, /llms-full.txt and one
+  // `.md` twin per page. See ./llms.mjs.
+  async buildEnd(siteConfig) {
+    const written = await writeLlmsFiles({
+      outDir: siteConfig.outDir,
+      srcDir: siteConfig.srcDir,
+      hostname,
+      version: packageVersion,
+      sidebar,
+      siteDescription: description,
+    });
+    console.log(
+      `generated llms.txt (${written.indexed} pages, ${Math.round(written.indexBytes / 1024)} kB), ` +
+        `llms-full.txt (${Math.round(written.fullBytes / 1024)} kB) ` +
+        `and ${written.twins} Markdown page twins`,
+    );
   },
 
   themeConfig: {
