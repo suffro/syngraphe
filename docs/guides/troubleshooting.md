@@ -66,10 +66,32 @@ Syngraphe will not modify it. Move or rename it, then re-run.
 ```
 
 Some other tool — or an earlier convention in your team — already uses that directory name. Nothing
-is written, nothing is merged.
+is written, nothing is merged. If that tool keeps a manifest, the reason names it instead:
+
+```text
+.context/manifest.json declares protocol "acme-context", not "repository-context".
+```
 
 Fix: move or rename the existing directory, then re-run. There is no flag to force Syngraphe past
 this: a directory it does not recognise may hold work nobody has a copy of.
+
+## `Context manifest does not declare a protocol.` — `MANIFEST005`
+
+A warning. The context was initialized before `protocol` was part of the manifest, so the directory
+is being recognised by its shape rather than by what it declares.
+
+Fix: add the line.
+
+```json
+{
+  "protocol": "repository-context",
+  "schemaVersion": 1,
+  "layout": "standard"
+}
+```
+
+Syngraphe does not add it for you: `init` creates missing files and never rewrites existing ones,
+and a manifest is a file you are allowed to have edited.
 
 ## `Unsupported context schema version N.` — `MANIFEST003`
 
@@ -89,6 +111,7 @@ The file should contain exactly:
 
 ```json
 {
+  "protocol": "repository-context",
   "schemaVersion": 1,
   "layout": "standard"
 }

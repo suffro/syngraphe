@@ -49,6 +49,7 @@ after internal implementation details.
 | `MANIFEST002` | error    | The manifest is not valid JSON, is not an object, or has no numeric `schemaVersion`. The parser's message is included as details. |
 | `MANIFEST003` | error    | The manifest declares a schema version this build does not support. Forces [exit code 3](/reference/exit-codes). |
 | `MANIFEST004` | warning  | The manifest declares a layout this build does not know.                  |
+| `MANIFEST005` | warning  | The manifest declares no `protocol`, so the directory can only be recognised by its shape. |
 
 ### `AGENTS.md` — `AGENT`
 

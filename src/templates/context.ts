@@ -10,9 +10,21 @@
 export const CONTEXT_SCHEMA_VERSION = 1;
 export const CONTEXT_LAYOUT = "standard";
 
+/**
+ * The name of the contract this directory implements, not of the tool that
+ * wrote it. `.context/` is a deliberately generic name: the marker is what
+ * says the directory belongs to this protocol, so another tool that claims
+ * the same path is recognised instead of adopted.
+ *
+ * It carries no version of its own — `schemaVersion` is the single version,
+ * and a second one would only be something to keep in agreement.
+ */
+export const CONTEXT_PROTOCOL = "repository-context";
+
 export const CONTEXT_DIRECTORY = ".context";
 
-export const MANIFEST_PATH = `${CONTEXT_DIRECTORY}/manifest.json`;
+export const MANIFEST_FILE = "manifest.json";
+export const MANIFEST_PATH = `${CONTEXT_DIRECTORY}/${MANIFEST_FILE}`;
 export const INDEX_PATH = `${CONTEXT_DIRECTORY}/index.md`;
 export const ARCHITECTURE_PATH = `${CONTEXT_DIRECTORY}/truth/architecture.md`;
 export const CONVENTIONS_PATH = `${CONTEXT_DIRECTORY}/truth/conventions.md`;
@@ -39,7 +51,7 @@ export interface ContextTemplate {
 }
 
 const MANIFEST_CONTENTS = `${JSON.stringify(
-  { schemaVersion: CONTEXT_SCHEMA_VERSION, layout: CONTEXT_LAYOUT },
+  { protocol: CONTEXT_PROTOCOL, schemaVersion: CONTEXT_SCHEMA_VERSION, layout: CONTEXT_LAYOUT },
   null,
   2,
 )}\n`;

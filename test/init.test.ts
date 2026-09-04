@@ -4,7 +4,7 @@ import { planInitialization } from "../src/commands/init.ts";
 import { Repository } from "../src/core/repository.ts";
 import { removeManagedBlock, validateManagedBlock } from "../src/managed/block.ts";
 import { AGENTS_MANAGED_BODY, CLAUDE_MANAGED_BODY } from "../src/templates/agents.ts";
-import { CONTEXT_TEMPLATES, MANIFEST_PATH } from "../src/templates/context.ts";
+import { CONTEXT_PROTOCOL, CONTEXT_TEMPLATES, MANIFEST_PATH } from "../src/templates/context.ts";
 import { runCli, TempRepo } from "./helpers/repo.ts";
 
 /** Create a repository that is removed when the test file finishes. */
@@ -31,6 +31,17 @@ describe("syngraphe init", () => {
       validateManagedBlock(await repo.read("CLAUDE.md"), CLAUDE_MANAGED_BODY).status,
       "valid",
     );
+  });
+
+  it("writes a manifest that declares the protocol", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+
+    assert.deepEqual(JSON.parse(await repo.read(MANIFEST_PATH)), {
+      protocol: CONTEXT_PROTOCOL,
+      schemaVersion: 1,
+      layout: "standard",
+    });
   });
 
   it("places the block after a top-level heading and preserves the rest", async () => {
@@ -176,6 +187,20 @@ describe("syngraphe init", () => {
 
     assert.equal(result.code, 1);
     assert.match(result.stderr, /not a Syngraphe repository context/);
+    assert.deepEqual([...(await repo.snapshot()).entries()], [...before.entries()]);
+  });
+
+  it("aborts on a .context directory belonging to another protocol", async () => {
+    const repo = await repoWith({
+      [MANIFEST_PATH]: '{ "protocol": "acme-context", "schemaVersion": 1 }\n',
+      ".context/notes.txt": "unrelated data\n",
+    });
+    const before = await repo.snapshot();
+
+    const result = await runCli(repo, ["init"]);
+
+    assert.equal(result.code, 1);
+    assert.match(result.stderr, /declares protocol "acme-context"/);
     assert.deepEqual([...(await repo.snapshot()).entries()], [...before.entries()]);
   });
 

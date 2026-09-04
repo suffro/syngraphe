@@ -144,6 +144,7 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
 | `MANIFEST002`             | error    | manifest is not valid JSON, or has no `schemaVersion`         |
 | `MANIFEST003`             | error    | manifest declares an unsupported schema version               |
 | `MANIFEST004`             | warning  | manifest declares an unknown layout                           |
+| `MANIFEST005`             | warning  | manifest declares no `protocol`                               |
 | `AGENT001`                | error    | `AGENTS.md` has no Syngraphe block                            |
 | `AGENT002`                | error    | the `AGENTS.md` block was modified manually                   |
 | `AGENT003`                | error    | `AGENTS.md` contains duplicate Syngraphe blocks               |

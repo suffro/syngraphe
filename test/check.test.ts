@@ -185,6 +185,49 @@ describe("syngraphe check", () => {
     assert.ok(codes(report).includes("MANIFEST002"));
   });
 
+  it("treats a manifest declaring another protocol as an unrelated directory", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(MANIFEST_PATH, '{ "protocol": "acme-context", "schemaVersion": 1 }\n');
+
+    const { code, report } = await check(repo);
+    const finding = report.findings.find((entry) => entry.code === "CTX003");
+
+    assert.equal(code, 1);
+    assert.match(finding?.details ?? "", /declares protocol "acme-context"/);
+    // Identity is settled before the schema, so no manifest finding is added.
+    assert.ok(
+      !codes(report).some((entry) => entry.startsWith("MANIFEST")),
+      JSON.stringify(report.findings),
+    );
+  });
+
+  it("does not adopt another tool's .context because its manifest parses", async () => {
+    const repo = await repoWith({
+      [MANIFEST_PATH]: '{ "schemaVersion": 1, "layout": "standard" }\n',
+      ".context/notes.txt": "unrelated data\n",
+    });
+
+    const { code, report } = await check(repo);
+
+    assert.equal(code, 1);
+    assert.ok(codes(report).includes("CTX003"), JSON.stringify(report.findings));
+  });
+
+  it("warns when the manifest declares no protocol", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(MANIFEST_PATH, '{ "schemaVersion": 1, "layout": "standard" }\n');
+
+    const { code, report } = await check(repo);
+    const finding = report.findings.find((entry) => entry.code === "MANIFEST005");
+
+    // A warning, not an error: the context is still recognisable by its shape.
+    assert.equal(code, 0);
+    assert.equal(finding?.severity, "warning");
+    assert.equal(finding?.file, MANIFEST_PATH);
+  });
+
   it("exits with the schema code on an unsupported schema version", async () => {
     const repo = await repoWith();
     assert.equal((await runCli(repo, ["init"])).code, 0);

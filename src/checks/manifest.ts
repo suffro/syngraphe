@@ -1,4 +1,9 @@
-import { CONTEXT_LAYOUT, CONTEXT_SCHEMA_VERSION, MANIFEST_PATH } from "../templates/context.ts";
+import {
+  CONTEXT_LAYOUT,
+  CONTEXT_PROTOCOL,
+  CONTEXT_SCHEMA_VERSION,
+  MANIFEST_PATH,
+} from "../templates/context.ts";
 import type { Check, Finding } from "./types.ts";
 
 /** The manifest exists, parses, and declares a schema this build supports. */
@@ -39,6 +44,19 @@ export const manifestCheck: Check = {
         details: manifest.parseError ?? undefined,
       });
       return findings;
+    }
+
+    // A manifest naming another protocol never reaches here: the directory is
+    // classified as unrelated, and the structure check reports it as CTX003.
+    if (manifest.protocol === null) {
+      findings.push({
+        code: "MANIFEST005",
+        severity: "warning",
+        category: "manifest",
+        file: MANIFEST_PATH,
+        message: "Context manifest does not declare a protocol.",
+        details: `Add \`"protocol": "${CONTEXT_PROTOCOL}"\` to the manifest. Without it, a \`.context/\` directory can only be recognised by its shape.`,
+      });
     }
 
     if (manifest.schemaVersion === null) {

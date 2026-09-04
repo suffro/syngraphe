@@ -21,20 +21,39 @@ and portable for free — Git already solved every problem a context store would
 (unreviewable, unmergeable, another artefact to keep in sync). Embedding context in code comments
 (no place for the parts that are not about one file).
 
+## A generic directory name, with the marker inside it
+
+**Decision.** The directory is `.context/`, not `.syngraphe/` or a namespaced variant. What
+identifies it is a field in the manifest: `"protocol": "repository-context"`.
+
+**Why.** A vendor-named directory would contradict the thing the project claims — that the context
+belongs to the repository and outlives the tool. `.context/` says that to every human who opens the
+repository, and leaves the door open for another implementation of the same protocol. The cost of a
+generic name is collision, and the answer to collision is not to rename the directory but to stop
+identifying it by its name: a directory is a repository context because it declares the protocol,
+not because of where it sits. The marker names the protocol rather than Syngraphe for the same
+reason the directory does.
+
+**Rejected.** `.syg.context/` or `.syngraphe/` (buys uniqueness by conceding that the context is the
+tool's). Recognising the directory by shape alone (any tool may create `truth/` or a
+`manifest.json`; the earlier heuristic would have adopted a foreign `.context/` whose manifest
+happened to carry a numeric `schemaVersion`). A configurable path (makes "agents always know where
+to look" optional, which is most of the value).
+
 ## Markdown, with exactly one JSON file
 
-**Decision.** Everything is Markdown except `manifest.json`, which holds two fields.
+**Decision.** Everything is Markdown except `manifest.json`, which holds three fields.
 
 **Why.** The context must be readable and editable without any tooling. The manifest exists only so
-a future version can tell which layout it is looking at before touching anything — that single check
-is worth one small machine-readable file.
+a future version can tell whose directory this is and which layout it is looking at before touching
+anything — those two checks are worth one small machine-readable file.
 
 **Rejected.** YAML frontmatter carrying structured metadata in every document (turns prose into a
 schema people get wrong). No manifest at all (a future migration would have to infer the layout).
 
 ## No timestamps or machine identifiers in the manifest
 
-**Decision.** The manifest holds `schemaVersion` and `layout`. Nothing else.
+**Decision.** The manifest holds `protocol`, `schemaVersion` and `layout`. Nothing else.
 
 **Why.** A generation timestamp, a tool version, a machine or agent name would change on every run,
 producing diff noise and merge conflicts that carry no information. Git already records when, by

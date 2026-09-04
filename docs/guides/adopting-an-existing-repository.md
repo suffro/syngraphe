@@ -73,13 +73,24 @@ This is the one case where Syngraphe refuses to act. The directory is classified
 | **partial**            | Recognisably Syngraphe, some files missing                    | Creates only the missing files.                   |
 | **unsupported schema** | Manifest declares a schema this build does not know           | Aborts with [exit code 3](/reference/exit-codes). |
 | **invalid manifest**   | `manifest.json` is not valid JSON, or has no `schemaVersion`  | Aborts with exit code 1.                          |
-| **unrelated**          | A `.context/` that is not Syngraphe's                         | Aborts with exit code 1, explains the conflict.   |
+| **unrelated**          | A `.context/` belonging to something else                     | Aborts with exit code 1, explains the conflict.   |
 
-The unrelated case looks like this:
+A directory is Syngraphe's when its manifest declares
+`"protocol": "repository-context"` — see the [context schema](/reference/context-schema). Without
+that marker, the decision falls back to whether the directory contains anything the standard layout
+defines. The unrelated case looks like this:
 
 ```text
 .context/ already exists and is not a Syngraphe repository context.
 .context/ exists, has no .context/manifest.json, and contains unrelated entries: notes.txt.
+Syngraphe will not modify it. Move or rename it, then re-run.
+```
+
+or, when the other tool keeps a manifest of its own:
+
+```text
+.context/ already exists and is not a Syngraphe repository context.
+.context/manifest.json declares protocol "acme-context", not "repository-context".
 Syngraphe will not modify it. Move or rename it, then re-run.
 ```
 

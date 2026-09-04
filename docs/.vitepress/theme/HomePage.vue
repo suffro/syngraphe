@@ -116,7 +116,7 @@ const capabilities = [
           <div class="syg-sections-hooks">
             <a href="#pillars"><code>The concept</code></a>
             <a href="#how-it-works"><code>How it works</code></a>
-            <a href="#the-layout"><code>The Layout</code></a>
+            <a href="#the-layout"><code>The .context/</code></a>
             <a href="#capabilities"><code>Capabilities</code></a>
           </div>
         </div>

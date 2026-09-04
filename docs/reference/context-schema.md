@@ -12,6 +12,7 @@ order: 2
 
 ```json
 {
+  "protocol": "repository-context",
   "schemaVersion": 1,
   "layout": "standard"
 }
@@ -19,6 +20,7 @@ order: 2
 
 | Field           | Type   | Meaning                                                       |
 | --------------- | ------ | ------------------------------------------------------------- |
+| `protocol`      | string | The contract this directory implements. Always `"repository-context"`. |
 | `schemaVersion` | number | The layout contract this context follows. Currently always `1`. |
 | `layout`        | string | The named arrangement of directories. Currently always `"standard"`. |
 
@@ -26,8 +28,26 @@ There are no timestamps, no machine identifiers, no tool versions, no agent or m
 one of those would produce diff noise on each run and record something the repository does not need
 to know. What is here is what a reader — or a future version of the tool — genuinely needs.
 
+### `protocol` names the contract, not the tool
+
+`.context/` is a deliberately generic name, because the context belongs to the repository rather
+than to Syngraphe. The cost of a generic name is that another tool may claim the same path, so the
+manifest says which contract the directory implements. The value is `"repository-context"` — the
+protocol — not `"syngraphe"`: any implementation of the protocol writes the same marker, and a
+directory carrying it is readable by all of them.
+
+The field holds no version of its own. `schemaVersion` is the version, and a second one would only
+be something to keep in agreement.
+
 ### Version handling
 
+- `protocol: "repository-context"` — this is a repository context.
+- Any other value — the directory belongs to something else. Syngraphe classifies it as
+  **unrelated**, reports `CTX003`, and writes nothing. The schema is not even looked at: telling
+  you to upgrade Syngraphe over a file it must not read would be the wrong advice.
+- No `protocol` at all — `MANIFEST005`, a warning, and the directory falls back to being recognised
+  by its shape. Manifests written before the field existed keep working; add the line to make the
+  identification exact.
 - `schemaVersion: 1` — supported.
 - Any other number — `MANIFEST003`, and both `init` and `check` exit with
   [code 3](/reference/exit-codes). The fix is to upgrade Syngraphe, never to edit the number down.
@@ -66,10 +86,10 @@ Before doing anything, Syngraphe decides what it is looking at:
 | ---------------------- | ------------------------------------------------------------------------- |
 | **absent**             | No `.context` path at all.                                                |
 | **valid**              | Manifest present, schema supported, all seven files present.              |
-| **partial**            | Recognisably Syngraphe (or an empty directory), some files missing.       |
-| **unsupported schema** | Manifest parses, `schemaVersion` is not 1.                                |
+| **partial**            | Recognisably a repository context (or an empty directory), some files missing. |
+| **unsupported schema** | Manifest parses, declares this protocol, `schemaVersion` is not 1.        |
 | **invalid manifest**   | Manifest is not valid JSON, not an object, or has no numeric `schemaVersion`. |
-| **unrelated**          | `.context` exists, has no manifest, and contains entries Syngraphe does not recognise — or is not a directory at all. |
+| **unrelated**          | The manifest declares a different `protocol` — or there is no `protocol` to go by and the directory contains only entries the standard layout does not define — or `.context` is not a directory at all. |
 
 Only **absent** and **partial** are written to. **Unrelated** aborts with an explanation and no
 assumptions; see [adopting an existing repository](/guides/adopting-an-existing-repository).
@@ -171,8 +191,12 @@ A reference that resolves no way at all is `LINK001`.
 ## Compatibility
 
 The schema version is what a future Syngraphe reads to know whether it can act. That is why the
-manifest exists at all, and why `schemaVersion` is checked before anything else happens: a v0.1
-build meeting a future layout stops with a clear message instead of half-understanding it.
+manifest exists at all, and why the manifest is read before anything else happens: a v0.1 build
+meeting a future layout stops with a clear message instead of half-understanding it.
+
+The two fields are read in that order — `protocol` first, `schemaVersion` second. Whose directory
+this is has to be settled before what version it is: a manifest belonging to another tool has no
+schema version Syngraphe is entitled to interpret.
 
 Nothing else in the context is machine-parsed. The Markdown is for readers, and Syngraphe makes no
 claim about its structure beyond the file names above.

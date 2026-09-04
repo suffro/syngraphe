@@ -16,10 +16,16 @@ const repository = "https://github.com/suffro/syngraphe";
 const description =
   "Keep repository context versioned, current, and understandable by both humans and coding agents.";
 
-// The share image. The square mark rather than a composed banner: `twitter:card: summary` shows a
-// square whole instead of cropping it, and the mark cannot drift from the logo the site already
-// uses.
-const socialImage = { path: "/static/png/logo-square-dark.png", size: "2000" };
+// The share image: a composed 1280×640 banner. 2:1 is the shape X, Slack, Discord, LinkedIn and
+// iMessage all render whole in a large card, so the mark, the name and the one-line claim survive
+// the crop every client applies. Declaring the dimensions lets a client reserve the space before
+// the file arrives, and the alt text is what a screen reader reads in place of the card.
+const socialImage = {
+  path: "/static/png/social-preview.png",
+  width: "1280",
+  height: "640",
+  alt: "Syngraphe — keeps a repository's own context in a small .context/ managed directory",
+};
 
 // What this site is in the vocabulary a crawler reads. `sameAs` ties the npm package and the
 // repository to this domain, so one project with three homes is read as one thing.
@@ -174,11 +180,15 @@ export default defineConfig({
       ["meta", { property: "og:description", content: summary }],
       ["meta", { property: "og:url", content: `${hostname}${route}` }],
       ["meta", { property: "og:image", content: `${hostname}${socialImage.path}` }],
-      ["meta", { property: "og:image:width", content: socialImage.size }],
-      ["meta", { property: "og:image:height", content: socialImage.size }],
-      ["meta", { property: "og:image:alt", content: "Syngraphe logo" }],
-      // `summary`, not `summary_large_image`: the image is square and a wide card would crop it.
-      ["meta", { name: "twitter:card", content: "summary" }],
+      ["meta", { property: "og:image:type", content: "image/png" }],
+      ["meta", { property: "og:image:width", content: socialImage.width }],
+      ["meta", { property: "og:image:height", content: socialImage.height }],
+      ["meta", { property: "og:image:alt", content: socialImage.alt }],
+      // `summary_large_image`, not `summary`: the banner is 2:1, and the small card would crop it
+      // to a square that cuts the wordmark off.
+      ["meta", { name: "twitter:card", content: "summary_large_image" }],
+      // X reads the Open Graph image, but not `og:image:alt`; this is the tag it does read.
+      ["meta", { name: "twitter:image:alt", content: socialImage.alt }],
     );
 
     // The structured data describes the project, not the page, so it belongs on the one page whose
@@ -229,7 +239,7 @@ export default defineConfig({
     },
 
     footer: {
-      message: `Syngraphe v${packageVersion} · context schema v1 · <a href="${repository}">GitHub</a>`,
+      message: `Syngraphe v${packageVersion} · context schema v1 · <a href="${repository}">GitHub</a> · <a href="/donate">Donate</a>`,
       copyright: "Licensed under Apache-2.0",
     },
   },

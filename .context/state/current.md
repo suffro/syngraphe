@@ -25,6 +25,10 @@ registry (Claude shim, Cursor and Codex native), and the deterministic check reg
 - The docs site publishes a Markdown surface for agents: `llms.txt`, `llms-full.txt`, a `.md` twin
   per page, `Accept: text/markdown` negotiation through a Cloudflare Pages Function, per-page
   Markdown and "Ask an AI" menus, and a `robots.txt` that names the assistant crawlers explicitly.
+- The manifest declares `"protocol": "repository-context"`, added to schema v1 rather than to a v2.
+  It is what identifies a `.context/` directory, so the generic name can stay generic; a manifest
+  naming another protocol is `unrelated`, and a manifest with no `protocol` falls back to the shape
+  test and reports `MANIFEST005`. See `decisions/0003-the-manifest-declares-the-protocol.md`.
 
 ## Next
 

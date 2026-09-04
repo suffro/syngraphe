@@ -1,4 +1,5 @@
 {
+  "protocol": "repository-context",
   "schemaVersion": 1,
   "layout": "standard"
 }

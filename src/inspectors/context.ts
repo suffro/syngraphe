@@ -9,9 +9,11 @@ import type { Repository } from "../core/repository.ts";
 import {
   CONTEXT_DIRECTORY,
   CONTEXT_ENTRIES,
+  CONTEXT_PROTOCOL,
   CONTEXT_SCHEMA_VERSION,
   DECISIONS_DIRECTORY,
   HISTORY_DIRECTORY,
+  MANIFEST_FILE,
   MANIFEST_PATH,
   REQUIRED_CONTEXT_FILES,
 } from "../templates/context.ts";
@@ -33,6 +35,8 @@ export type ContextStatus =
 export interface ManifestInspection {
   present: boolean;
   parsed: boolean;
+  /** The declared protocol, or null when the manifest does not name one. */
+  protocol: string | null;
   schemaVersion: number | null;
   layout: string | null;
   parseError: string | null;
@@ -82,24 +86,41 @@ export async function inspectContext(repository: Repository): Promise<ContextIns
     historyCount,
   };
 
+  const shape = await inspectShape(repository);
+
   if (!manifest.present) {
-    const entries = (await repository.list(CONTEXT_DIRECTORY)) ?? [];
-    const meaningful = entries.filter((entry) => entry !== ".DS_Store");
-    if (meaningful.length === 0) {
-      return { ...base, status: "partial" };
-    }
-    const looksLikeSyngraphe = meaningful.some((entry) => CONTEXT_ENTRIES.includes(entry));
-    if (!looksLikeSyngraphe) {
+    if (shape.foreign) {
       return {
         ...base,
         status: "unrelated",
-        conflictReason: `${CONTEXT_DIRECTORY}/ exists, has no ${MANIFEST_PATH}, and contains unrelated entries: ${meaningful.join(", ")}.`,
+        conflictReason: `${CONTEXT_DIRECTORY}/ exists, has no ${MANIFEST_PATH}, and contains unrelated entries: ${shape.entries.join(", ")}.`,
       };
     }
     return { ...base, status: "partial" };
   }
 
   if (!manifest.parsed) return { ...base, status: "invalid-manifest" };
+
+  // Identity before version: a manifest naming another protocol is someone
+  // else's directory, and reporting its schema as unsupported would tell the
+  // user to upgrade Syngraphe over a file Syngraphe must not read at all.
+  if (manifest.protocol !== null && manifest.protocol !== CONTEXT_PROTOCOL) {
+    return {
+      ...base,
+      status: "unrelated",
+      conflictReason: `${MANIFEST_PATH} declares protocol "${manifest.protocol}", not "${CONTEXT_PROTOCOL}".`,
+    };
+  }
+  // Without the marker there is nothing to identify the manifest by, so the
+  // weaker shape test decides — as it does when there is no manifest at all.
+  if (manifest.protocol === null && shape.foreign) {
+    return {
+      ...base,
+      status: "unrelated",
+      conflictReason: `${MANIFEST_PATH} does not declare "protocol": "${CONTEXT_PROTOCOL}", and ${CONTEXT_DIRECTORY}/ contains unrelated entries: ${shape.entries.join(", ")}.`,
+    };
+  }
+
   if (manifest.schemaVersion === null) return { ...base, status: "invalid-manifest" };
   if (manifest.schemaVersion !== CONTEXT_SCHEMA_VERSION) {
     return { ...base, status: "unsupported-schema" };
@@ -107,10 +128,40 @@ export async function inspectContext(repository: Repository): Promise<ContextIns
   return { ...base, status: missingFiles.length === 0 ? "valid" : "partial" };
 }
 
+interface ShapeInspection {
+  /** Directory entries other than the manifest and editor leftovers. */
+  entries: string[];
+  /** Entries exist and none of them belongs to the standard layout. */
+  foreign: boolean;
+}
+
+/**
+ * The shape-based identity test, used only where the manifest cannot answer.
+ *
+ * `manifest.json` is excluded: any tool may write one, so its presence says
+ * nothing about who wrote it — which is the question being asked. An empty
+ * directory is not evidence of another tool either, so it is not foreign.
+ */
+async function inspectShape(repository: Repository): Promise<ShapeInspection> {
+  const listed = (await repository.list(CONTEXT_DIRECTORY)) ?? [];
+  const entries = listed.filter((entry) => entry !== ".DS_Store" && entry !== MANIFEST_FILE);
+  return {
+    entries,
+    foreign: entries.length > 0 && !entries.some((entry) => CONTEXT_ENTRIES.includes(entry)),
+  };
+}
+
 async function inspectManifest(repository: Repository): Promise<ManifestInspection> {
   const raw = await repository.read(MANIFEST_PATH);
   if (raw === null) {
-    return { present: false, parsed: false, schemaVersion: null, layout: null, parseError: null };
+    return {
+      present: false,
+      parsed: false,
+      protocol: null,
+      schemaVersion: null,
+      layout: null,
+      parseError: null,
+    };
   }
 
   let value: unknown;
@@ -120,6 +171,7 @@ async function inspectManifest(repository: Repository): Promise<ManifestInspecti
     return {
       present: true,
       parsed: false,
+      protocol: null,
       schemaVersion: null,
       layout: null,
       parseError: error instanceof Error ? error.message : String(error),
@@ -130,6 +182,7 @@ async function inspectManifest(repository: Repository): Promise<ManifestInspecti
     return {
       present: true,
       parsed: false,
+      protocol: null,
       schemaVersion: null,
       layout: null,
       parseError: "Manifest must be a JSON object.",
@@ -137,9 +190,10 @@ async function inspectManifest(repository: Repository): Promise<ManifestInspecti
   }
 
   const record = value as Record<string, unknown>;
+  const protocol = typeof record.protocol === "string" ? record.protocol : null;
   const schemaVersion = typeof record.schemaVersion === "number" ? record.schemaVersion : null;
   const layout = typeof record.layout === "string" ? record.layout : null;
-  return { present: true, parsed: true, schemaVersion, layout, parseError: null };
+  return { present: true, parsed: true, protocol, schemaVersion, layout, parseError: null };
 }
 
 async function countDocuments(repository: Repository, directory: string): Promise<number> {
@@ -155,6 +209,7 @@ function emptyInspection(status: ContextStatus, conflictReason: string | null): 
     manifest: {
       present: false,
       parsed: false,
+      protocol: null,
       schemaVersion: null,
       layout: null,
       parseError: null,
