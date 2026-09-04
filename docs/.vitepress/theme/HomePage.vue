@@ -304,17 +304,47 @@ const capabilities = [
 .syg-sections-hooks {
   font-size: medium;
   display: flex;
+  /* The four anchors are a single row on desktop, but they must be free to wrap: on a phone the
+     row is wider than the viewport and would otherwise overflow the hero. */
+  flex-wrap: wrap;
   justify-content: start;
-  gap: 10px;
+  gap: 8px 10px;
 }
 
 .syg-sections-hooks a {
   opacity: 0.35;
+  /* Each anchor stays on one line; wrapping happens between them, never inside a label. */
+  white-space: nowrap;
+}
+
+.syg-sections-hooks a code {
+  /* Long labels must be allowed to shrink rather than push the row past the viewport. */
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .syg-sections-hooks a:hover {
   cursor: pointer;
   opacity: 1;
+}
+
+/* Touch devices never get :hover, so the dimmed resting state is all they would ever see. */
+@media (hover: none) {
+  .syg-sections-hooks a {
+    opacity: 0.7;
+  }
+}
+
+@media (max-width: 640px) {
+  .syg-sections-hooks {
+    font-size: 0.85rem;
+    gap: 8px;
+  }
+
+  .syg-sections-hooks a code {
+    font-size: 0.85em;
+    padding: 3px 6px;
+  }
 }
 
 </style>
