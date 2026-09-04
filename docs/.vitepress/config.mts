@@ -233,11 +233,6 @@ export default defineConfig({
 
     outline: { level: [2, 3] },
 
-    editLink: {
-      pattern: `${repository}/edit/main/docs/:path`,
-      text: "Edit this page on GitHub",
-    },
-
     footer: {
       message: `Syngraphe v${packageVersion} · context schema v1 · <a href="${repository}">GitHub</a> · <a href="/donate">Donate</a>`,
       copyright: "Licensed under Apache-2.0",
