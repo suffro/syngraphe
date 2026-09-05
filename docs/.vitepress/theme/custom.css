@@ -740,6 +740,36 @@
   margin-bottom: 10px;
 }
 
+/* ── Donate ────────────────────────────────────────────────────── */
+
+/*
+ * The Ko-fi frame.
+ *
+ * The widget is a document served by ko-fi.com, so nothing inside it can be styled from here and
+ * its own text is written for a light surface: the frame keeps one, in both colour schemes, because
+ * letting the dark page show through would leave Ko-fi's dark grey text on a dark background.
+ *
+ * What was worth fixing is its shape. Ko-fi's snippet sets `width: 100%`, which stretched a light
+ * panel across the whole content column and, on the dark theme, read as a hole in the page. Capped
+ * at the width the widget is drawn for, centred, and given the same hairline and radius as every
+ * other panel on the site, it reads as an embedded card instead.
+ */
+.syg-kofi {
+  max-width: 420px;
+  margin: 32px auto 0;
+  padding: 4px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: #f9f9f9;
+  overflow: hidden;
+}
+
+.syg-kofi iframe {
+  display: block;
+  width: 100%;
+  border: none;
+}
+
 /* ── Narrow screens ────────────────────────────────────────────── */
 
 @media (max-width: 960px) {
