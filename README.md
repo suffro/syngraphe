@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/public/static/svg/logo-light.svg">
-    <img src="docs/public/static/svg/logo-light.svg" alt="Syngraphe" width="80">
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/suffro/syngraphe/f67aecf2feb229599199e5034c3684f33ba408e9/docs/public/static/svg/logo-light.svg">
+    <img src="https://raw.githubusercontent.com/suffro/syngraphe/f67aecf2feb229599199e5034c3684f33ba408e9/docs/public/static/svg/logo-light.svg" alt="Syngraphe" width="80">
   </picture>
 </p>
 
