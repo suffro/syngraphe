@@ -47,7 +47,7 @@ remove them afterwards. They never touch the developer's own repository.
 - New guards get a test that observes them failing, not only passing.
 
 - Any change to shared `src/` or `action/src/` must keep the committed Action bundle synchronized.
-  Never hand-edit generated bundle files. The LF rule in `.gitattributes` keeps bundle verification
+  Never hand-edit generated bundle files. The LF rule in `.gitattributes` keeps text checkouts, formatting and bundle verification
   portable. Preserve generated third-party notices with the bundle.
 - Action documentation lives in `docs/reference/github-action.md`; `action/README.md` points there.
   Do not invent release tags or claim Marketplace availability before an actual release.

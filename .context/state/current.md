@@ -33,7 +33,9 @@ These tags are independent of the npm CLI; package release metadata has not been
   standalone bundle execution and report/annotation behavior. Typecheck, lint, CLI/Action builds,
   documentation build, package dry-run inspection and repository `check --all` passed.
   The bundle drift guard was observed rejecting an intentionally changed artifact, then passing
-  after restoration. Linux/Windows and the GitHub-hosted CI matrix have not yet been executed.
+  after restoration. The first hosted CI run passed all checks on Linux/macOS and ran the Action successfully on
+  Windows. Windows lint exposed checkout CRLF conversion; `.gitattributes` now enforces LF for
+  repository text, and the complete matrix must pass before release.
 
 - Initial implementation of the package, CLI, core, managed blocks, integrations and checks.
 - Test suite covering managed-block behaviour, path safety, initialization (idempotency,
