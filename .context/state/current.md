@@ -5,7 +5,7 @@
 Syngraphe implements initialization, integrity checks, statistics and document lifecycle helpers,
 with explicit package scopes for nested/monorepo context. A bundled GitHub Action now adds
 runner annotations, summaries and versioned reports on top of the same core. Schema v1, the root managed block and
-single-scope check JSON remain unchanged. The Action release is being prepared as `action-v1.0.0`, with `action-v1` for compatible updates.
+single-scope check JSON remain unchanged. The Action is released as `action-v1.0.0`, with `action-v1` for compatible updates.
 These tags are independent of the npm CLI; package release metadata has not been changed.
 
 ## Recent relevant changes
@@ -18,8 +18,11 @@ These tags are independent of the npm CLI; package release metadata has not been
   annotations. The bundle runs standalone; no npm install, API token or target-code execution.
 - The new CI matrix targets Linux, macOS and Windows, with the local Action before dependency
   installation, metadata/runtime tests, and deterministic bundle/third-party-notice checks.
-  No Action release tag or Marketplace publication has been made. See
-  `decisions/0005-bundled-github-action.md`.
+  GitHub release `action-v1.0.0` and compatibility tag `action-v1` both resolve to
+  `9b86b8b8109d8f58c81782c466cb9774d1cb6367`. The public release was verified through GitHub's API.
+  Marketplace publication remains pending: GitHub documents the release-editor checkbox, with no
+  corresponding option in the public release API or `gh release`; Computer Use is unavailable
+  and the user prefers terminal operations. See `decisions/0005-bundled-github-action.md`.
 
 - `stats` reports bytes, words, estimated tokens, active/history totals, large Markdown documents
   and exact duplicates; its token budget is advisory and JSON is independently versioned.
@@ -33,9 +36,10 @@ These tags are independent of the npm CLI; package release metadata has not been
   standalone bundle execution and report/annotation behavior. Typecheck, lint, CLI/Action builds,
   documentation build, package dry-run inspection and repository `check --all` passed.
   The bundle drift guard was observed rejecting an intentionally changed artifact, then passing
-  after restoration. The first hosted CI run passed all checks on Linux/macOS and ran the Action successfully on
-  Windows. Windows lint exposed checkout CRLF conversion; `.gitattributes` now enforces LF for
-  repository text, and the complete matrix must pass before release.
+  after restoration. Hosted CI run `34542006024` passed on Ubuntu, macOS and Windows at the release commit:
+  130 tests passed with no skips on each OS, plus standalone Action execution, bundle verification,
+  typecheck, lint and build. The first run exposed Windows checkout CRLF conversion; repository
+  text now uses LF via `.gitattributes`, also verified with `core.autocrlf=true` locally.
 
 - Initial implementation of the package, CLI, core, managed blocks, integrations and checks.
 - Test suite covering managed-block behaviour, path safety, initialization (idempotency,
@@ -67,6 +71,9 @@ These tags are independent of the npm CLI; package release metadata has not been
   test and reports `MANIFEST005`. See `decisions/0003-the-manifest-declares-the-protocol.md`.
 
 ## Next
+
+- Complete Marketplace publication in the GitHub release editor for `action-v1.0.0`, then verify
+  the public listing. Release URL: https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0
 
 - Confirm the `syngraphe.dev` domain and Pages project before announcing the docs URL.
 - Use the tool on real repositories and collect friction before adding surface.
