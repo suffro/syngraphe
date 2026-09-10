@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { withBase } from "vitepress";
+import { globalStore } from './store.ts'
 
 // The real diff `syngraphe init` produces on a file that already had a heading and content. Kept as
 // data rather than markup so the added lines cannot drift from their gutter.
@@ -81,7 +82,7 @@ const capabilities = [
         <div>
           <span class="syg-badge">
             <span class="syg-badge-dot"></span>
-            v0.1 · context schema v1
+            v{{ globalStore.packageVersion }} · schema v{{ globalStore.schemaVersion }}
           </span>
 
           <h1>Repository context that stays true.</h1>
