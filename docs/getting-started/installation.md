@@ -56,7 +56,7 @@ syngraphe --version
 syngraphe --help
 ```
 
-`--help` lists the three commands and their flags:
+`--help` lists the commands and their flags:
 
 ```text
 Usage: syngraphe [options] [command]
@@ -65,14 +65,19 @@ Keeps repository context versioned, current, and understandable by both humans
 and coding agents.
 
 Options:
-  -v, --version    output the version number
-  -h, --help       display help for command
+  --scope <path>    Select an existing directory relative to the Git root.
+  -v, --version     output the version number
+  -h, --help        display help for command
 
 Commands:
-  init [options]   Create the repository context and the agent bootstrap files.
-  status           Summarize the repository context. Read-only and offline.
-  check [options]  Run the deterministic context integrity checks.
-  help [command]   display help for command
+  init [options]    Create the repository context and the agent bootstrap files.
+  status [options]  Summarize repository context.
+  check [options]   Run context integrity checks.
+  stats [options]   Report context size, estimated tokens and bloat signals.
+  decision          Create and list decision documents.
+  state             Create and list state documents.
+  history           Create and list history documents.
+  help [command]    display help for command
 ```
 
 ## Where it may be run
@@ -86,7 +91,9 @@ Syngraphe stores repository context in the repository itself, so it must run ins
 ```
 
 That is [exit code 2](/reference/exit-codes). Commands can be run from any subdirectory: paths are
-always resolved against the repository root, never against the working directory.
+resolved against the repository root by default, never against the working directory.
+Use `--scope <path>` to select an existing package directory relative to the Git root;
+see [nested contexts and monorepos](/guides/monorepos).
 
 ## What it will and will not touch
 

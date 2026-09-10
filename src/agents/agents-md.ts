@@ -9,14 +9,14 @@
 import type { Plan } from "../core/plan.ts";
 import type { Repository } from "../core/repository.ts";
 import { inspectManagedFile, type ManagedFileState, planManagedFile } from "../managed/file.ts";
-import { AGENTS_FILE, AGENTS_MANAGED_BODY } from "../templates/agents.ts";
+import { AGENTS_FILE, agentsManagedBody } from "../templates/agents.ts";
 
 export const AGENTS_PATCH_SUMMARY = "Syngraphe repository-context bootstrap";
 
 export async function inspectAgentsBootstrap(repository: Repository): Promise<ManagedFileState> {
-  return inspectManagedFile(repository, AGENTS_FILE, AGENTS_MANAGED_BODY);
+  return inspectManagedFile(repository, AGENTS_FILE, agentsManagedBody(repository.scope));
 }
 
-export function planAgentsBootstrap(state: ManagedFileState): Plan {
-  return planManagedFile(state, AGENTS_MANAGED_BODY, AGENTS_PATCH_SUMMARY);
+export function planAgentsBootstrap(state: ManagedFileState, scope = "."): Plan {
+  return planManagedFile(state, agentsManagedBody(scope), AGENTS_PATCH_SUMMARY);
 }

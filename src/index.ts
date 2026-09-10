@@ -15,14 +15,19 @@ export type { Check, CheckContext, Finding, Severity } from "./checks/types.ts";
 export { main } from "./cli/main.ts";
 export type { Output } from "./cli/output.ts";
 export { CHECK_JSON_VERSION, runCheck } from "./commands/check.ts";
+export { listDocuments, planDocument, runDocument } from "./commands/documents.ts";
 export { planInitialization, runInit } from "./commands/init.ts";
+export { runStats } from "./commands/stats.ts";
 export { runStatus } from "./commands/status.ts";
 export { SyngrapheError } from "./core/errors.ts";
 export * from "./core/exit-codes.ts";
 export { applyPlan, emptyPlan, type FileOperation, type Plan } from "./core/plan.ts";
 export { renderPlan } from "./core/render-plan.ts";
 export { Repository } from "./core/repository.ts";
+export { discoverScopes } from "./core/scopes.ts";
 export { inspectContext } from "./inspectors/context.ts";
+export type { ContextStats, DocumentSize, SizeTotals } from "./inspectors/stats.ts";
+export { DEFAULT_TOKEN_BUDGET, inspectStats, LARGE_DOCUMENT_TOKENS } from "./inspectors/stats.ts";
 export {
   findManagedBlock,
   insertManagedBlock,
@@ -34,3 +39,4 @@ export {
 } from "./managed/block.ts";
 export { inspectManagedFile, planManagedFile } from "./managed/file.ts";
 export * from "./templates/context.ts";
+export type { DocumentCategory } from "./templates/documents.ts";

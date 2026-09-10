@@ -79,7 +79,7 @@ export async function planInitialization(repository: Repository): Promise<Plan> 
     plan.unchanged.push({ path: `${CONTEXT_DIRECTORY}/`, reason: "already initialized" });
   }
 
-  merge(plan, planAgentsBootstrap(await inspectAgentsBootstrap(repository)));
+  merge(plan, planAgentsBootstrap(await inspectAgentsBootstrap(repository), repository.scope));
 
   for (const integration of agentIntegrations) {
     merge(plan, await integration.planIntegration(repository));
@@ -93,7 +93,8 @@ export async function runInit(options: InitOptions): Promise<ExitCode> {
   const plan = await planInitialization(repository);
 
   const title = dryRun ? "Syngraphe initialization plan" : "Syngraphe initialization";
-  output.write(renderPlan(plan, title));
+  const scope = repository.scope === "." ? "" : ` (scope: ${repository.scope})`;
+  output.write(renderPlan(plan, `${title}${scope}`));
 
   if (plan.conflicts.length > 0) {
     output.writeError("Initialization stopped: resolve the conflicts above and re-run.");

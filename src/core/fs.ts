@@ -42,12 +42,7 @@ export async function pathKind(absolutePath: string): Promise<PathKind> {
 
 /** Read a UTF-8 text file, or null when it does not exist. */
 export async function readTextFile(absolutePath: string): Promise<string | null> {
-  try {
-    return await readFile(absolutePath, "utf8");
-  } catch (error) {
-    if (isNotFound(error)) return null;
-    throw error;
-  }
+  return (await readBinaryFile(absolutePath))?.toString("utf8") ?? null;
 }
 
 /** List directory entry names, or null when the directory does not exist. */
@@ -88,6 +83,21 @@ export async function writeTextFileAtomic(absolutePath: string, contents: string
     await rename(temporary, absolutePath);
   } catch (error) {
     await unlink(temporary).catch(() => undefined);
+    throw error;
+  }
+}
+
+/** File length in bytes, without reading a binary file as UTF-8. */
+export async function fileSize(absolutePath: string): Promise<number> {
+  return (await lstat(absolutePath)).size;
+}
+
+/** Read exact bytes, or null when the path is absent. */
+export async function readBinaryFile(absolutePath: string): Promise<Buffer | null> {
+  try {
+    return await readFile(absolutePath);
+  } catch (error) {
+    if (isNotFound(error)) return null;
     throw error;
   }
 }

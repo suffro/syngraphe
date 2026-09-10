@@ -69,8 +69,9 @@ considered and dismissed.
 The rejected alternatives are the valuable part. A decision record without them is a description of
 the present, which the code already provides.
 
-For v0.1 this is a Markdown directory and nothing more: no ADR workflow, no numbering enforcement,
-no status lifecycle. `syngraphe status` counts the files; nothing else is imposed.
+`syngraphe decision new <name>` creates a headings-only starting point, and `decision list` lists
+the records. There is no numbering enforcement or decision-status lifecycle; the records remain
+ordinary Markdown that can be written without the CLI.
 
 ## History
 

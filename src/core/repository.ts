@@ -1,8 +1,8 @@
 /**
  * The repository Syngraphe operates on.
  *
- * Everything is addressed with repository-relative POSIX paths. The class owns
- * path safety: a path that escapes the Git root, or that would be written
+ * IO uses paths relative to the selected scope (the Git root by default). The
+ * class owns path safety: a path that escapes the scope, or would be written
  * through a symlink, is rejected before any filesystem call happens.
  */
 
@@ -11,9 +11,11 @@ import { SyngrapheError } from "./errors.ts";
 import { EXIT_USAGE } from "./exit-codes.ts";
 import {
   ensureDirectory,
+  fileSize,
   listDirectory,
   type PathKind,
   pathKind,
+  readBinaryFile,
   readTextFile,
   resolveRealPath,
   writeTextFileAtomic,
@@ -23,10 +25,14 @@ import { createGitClient, type GitClient } from "./git.ts";
 export class Repository {
   readonly root: string;
   readonly git: GitClient;
+  readonly gitRoot: string;
+  readonly scope: string;
 
-  private constructor(root: string, git: GitClient) {
+  private constructor(root: string, git: GitClient, gitRoot = root) {
     this.root = root;
     this.git = git;
+    this.gitRoot = gitRoot;
+    this.scope = toPosix(path.relative(gitRoot, root)) || ".";
   }
 
   /** Discover the Git root containing `cwd`. */
@@ -50,6 +56,36 @@ export class Repository {
     return new Repository(resolved, createGitClient(resolved));
   }
 
+  /** Select an existing directory relative to the Git root; never follow symlinked scopes. */
+  async inScope(scope: string): Promise<Repository> {
+    const base = Repository.atRoot(this.gitRoot);
+    if (scope.includes("\\")) {
+      throw new SyngrapheError("Scope paths must use forward slashes.", EXIT_USAGE);
+    }
+    const relative = path.relative(base.root, path.resolve(base.root, scope));
+    if (path.isAbsolute(scope) || relative === ".." || relative.startsWith(`..${path.sep}`)) {
+      throw new SyngrapheError(`Scope must stay inside the Git repository: ${scope}`, EXIT_USAGE);
+    }
+    if (
+      toPosix(relative)
+        .split("/")
+        .some((part) => part === ".git" || part === ".context")
+    ) {
+      throw new SyngrapheError("A scope cannot be inside .git or .context metadata.", EXIT_USAGE);
+    }
+    const absolute = base.resolve(scope);
+    await base.assertWritable(scope, absolute);
+    if ((await base.kind(scope)) !== "directory") {
+      throw new SyngrapheError(`Scope is not an existing directory: ${scope}`, EXIT_USAGE);
+    }
+    const git = createGitClient(absolute);
+    const discoveredRoot = await git.root();
+    if (discoveredRoot === null || path.resolve(discoveredRoot) !== this.gitRoot) {
+      throw new SyngrapheError(`Scope belongs to another Git repository: ${scope}`, EXIT_USAGE);
+    }
+    return new Repository(absolute, git, this.gitRoot);
+  }
+
   /** Absolute path of a repository-relative path, rejecting anything outside the root. */
   resolve(relativePath: string): string {
     if (path.isAbsolute(relativePath)) {
@@ -57,7 +93,7 @@ export class Repository {
     }
     const absolute = path.resolve(this.root, relativePath);
     const relative = path.relative(this.root, absolute);
-    if (relative.startsWith("..") || path.isAbsolute(relative)) {
+    if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
       throw new SyngrapheError(`Path escapes the repository root: ${relativePath}`);
     }
     return absolute;
@@ -70,6 +106,14 @@ export class Repository {
 
   async kind(relativePath: string): Promise<PathKind> {
     return pathKind(this.resolve(relativePath));
+  }
+
+  async size(relativePath: string): Promise<number> {
+    return fileSize(this.resolve(relativePath));
+  }
+
+  async readBytes(relativePath: string): Promise<Buffer | null> {
+    return readBinaryFile(this.resolve(relativePath));
   }
 
   async read(relativePath: string): Promise<string | null> {
@@ -93,15 +137,22 @@ export class Repository {
    */
   async write(relativePath: string, contents: string): Promise<void> {
     const absolute = this.resolve(relativePath);
-    await this.assertWritable(relativePath, absolute);
+    await this.assertWritablePath(relativePath);
     await ensureDirectory(path.dirname(absolute));
     await writeTextFileAtomic(absolute, contents);
   }
 
   async makeDirectory(relativePath: string): Promise<void> {
     const absolute = this.resolve(relativePath);
-    await this.assertWritable(relativePath, absolute);
+    await this.assertWritablePath(relativePath);
     await ensureDirectory(absolute);
+  }
+
+  async assertWritablePath(relativePath: string): Promise<void> {
+    // Include the scope's ancestors: a scope may have changed since selection.
+    const base = Repository.atRoot(this.gitRoot);
+    const absolute = this.resolve(relativePath);
+    await base.assertWritable(base.relativize(absolute), absolute);
   }
 
   private async assertWritable(relativePath: string, absolute: string): Promise<void> {

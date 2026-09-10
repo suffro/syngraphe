@@ -72,7 +72,34 @@ syngraphe status          # summarize the repository context
 syngraphe check           # run the deterministic integrity checks
 syngraphe check --json    # machine-readable findings, for CI
 syngraphe check --strict  # treat warnings as failures
+
+syngraphe stats           # bytes, estimated tokens, large files and duplicates
+syngraphe stats --json --budget 8000
+
+syngraphe decision new use_postgres --title "Use PostgreSQL"
+syngraphe decision list
+syngraphe state new migration
+syngraphe history new migration_outcome
+syngraphe state archive phase_one --dry-run  # preserve current state, then reset its template
+
+syngraphe init --scope packages/api         # independent context in an existing directory
+syngraphe check --scope packages/api
+syngraphe check --all                       # check discovered monorepo contexts
+syngraphe stats --all
 ```
+
+All three document categories support `new <name>` (with `--title` and `--dry-run`) and `list`.
+They require an initialized context and never overwrite an existing document. `state archive <name>`
+copies current state into history before resetting it; omitting `--dry-run` applies the plan.
+
+`stats` estimates Markdown tokens as `ceil(UTF-8 bytes / 4)` per file. It separates history from
+active content, flags documents over 2,000 estimated tokens and exact duplicates, and compares the
+total against an advisory budget (8,000 by default). It does not measure an actual agent prompt.
+
+`--scope` is relative to the Git root, independent of the working directory; without it commands
+still select the root. `status`, `check` and `stats` accept `--all` for tracked and unignored nested
+contexts. Each scope keeps its own `.context/`, `AGENTS.md` and `CLAUDE.md`; shared knowledge stays
+in ancestor contexts. See [the monorepo guide](docs/guides/monorepos.md).
 
 ### What `init` creates
 
@@ -217,6 +244,9 @@ Implemented:
 - `syngraphe init`, `syngraphe init --dry-run`
 - `syngraphe status`
 - `syngraphe check`, `--json`, `--strict`
+- `syngraphe stats`, `--json`, `--budget`
+- `decision`, `state`, `history`: `new`, `list`; `state archive`
+- explicit nested contexts with `--scope`; `--all` for read-only monorepo reports
 - the `.context/` schema v1 and its templates
 - managed blocks in `AGENTS.md` and `CLAUDE.md`
 - the deterministic check registry

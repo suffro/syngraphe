@@ -76,7 +76,9 @@ Those seven files are what `init` creates and what `check` expects. A missing on
 re-running `init` recreates exactly what is absent without touching anything else.
 
 Files you add — more documents under `truth/`, decision records, archived context — are yours.
-Syngraphe never removes, rewrites or reorders them; it only follows the local references in them.
+Syngraphe never removes, rewrites or reorders these additional files; it follows their local
+references and includes them in statistics. The explicit `state archive` command preserves
+`state/current.md` in history and resets that one file to its template.
 
 ## How a `.context/` directory is classified
 
@@ -187,6 +189,15 @@ A directory named in inline code — `` `.cursor/rules/` ``, `` `src/` `` — is
 reference: prose mentions directories that need not exist here, and a missing context directory is
 already reported by the structure check. Anchors, external URLs and fenced code blocks are ignored.
 A reference that resolves no way at all is `LINK001`.
+
+## Nested contexts
+
+Each scope has its own complete `.context/` with the same schema and required files. Nested support
+adds no manifest fields and requires no migration. Select a directory with `--scope` or discover
+contexts with `--all` on reporting commands. See [the monorepo guide](/guides/monorepos).
+
+Within a scope, inline-code document references additionally fall back to the Git root. Markdown
+links may reference parent or sibling context as long as they remain inside the Git tree.
 
 ## Compatibility
 

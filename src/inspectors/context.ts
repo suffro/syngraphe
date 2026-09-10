@@ -152,7 +152,18 @@ async function inspectShape(repository: Repository): Promise<ShapeInspection> {
 }
 
 async function inspectManifest(repository: Repository): Promise<ManifestInspection> {
-  const raw = await repository.read(MANIFEST_PATH);
+  const kind = await repository.kind(MANIFEST_PATH);
+  if (kind !== "file" && kind !== "missing") {
+    return {
+      present: true,
+      parsed: false,
+      protocol: null,
+      schemaVersion: null,
+      layout: null,
+      parseError: `${MANIFEST_PATH} must be a regular file, found ${kind}.`,
+    };
+  }
+  const raw = kind === "missing" ? null : await repository.read(MANIFEST_PATH);
   if (raw === null) {
     return {
       present: false,
@@ -197,6 +208,7 @@ async function inspectManifest(repository: Repository): Promise<ManifestInspecti
 }
 
 async function countDocuments(repository: Repository, directory: string): Promise<number> {
+  if ((await repository.kind(directory)) !== "directory") return 0;
   const entries = await repository.list(directory);
   if (entries === null) return 0;
   return entries.filter((entry) => entry.endsWith(".md") && entry !== "README.md").length;

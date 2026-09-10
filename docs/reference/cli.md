@@ -20,12 +20,18 @@ syg [options] [command]
 | --------------- | -------------------------- |
 | `-v, --version` | Print the version and exit |
 | `-h, --help`    | Print help and exit        |
+| `--scope <path>` | Select an existing directory relative to the Git root |
 
 The CLI is installed under two interchangeable names: `syngraphe` and the shorthand `syg`. This
 reference uses the full name.
 
-Every command must run inside a Git working tree; paths are resolved against the repository root
-regardless of the working directory. Nothing here reaches the network.
+Every command must run inside a Git working tree. Without `--scope`, paths resolve against the
+Git root regardless of the working directory. With `--scope`, context and agent files resolve
+inside that directory. The scope argument itself is always Git-root-relative, using forward slashes.
+The option can appear before or after the command. Nothing here reaches the network.
+
+`status`, `check`, and `stats` also accept `--all`; it cannot be combined with `--scope`.
+See [nested contexts and monorepos](/guides/monorepos) for discovery and inheritance rules.
 
 ## `syngraphe init`
 
@@ -203,6 +209,81 @@ See [JSON output](/reference/json-output) for the payload shape and its stabilit
 Exit code 3 takes precedence over 1: an unsupported schema means the answer to every other question
 is unreliable, and the fix is to upgrade the tool rather than change the repository.
 
+## `syngraphe stats`
+
+Measures context size and reports advisory bloat signals. Requires an initialized, supported context.
+
+```bash
+syngraphe stats [--json] [--budget <tokens>] [--scope <path> | --all]
+```
+
+- Bytes and file counts include every regular file under the selected `.context/` recursively.
+- Words are whitespace-separated runs in `.md` files. Estimated tokens are
+  `ceil(UTF-8 bytes / 4)` **per Markdown file**, summed for totals. This is a rough sizing heuristic,
+  not a model tokenizer or the actual context loaded by an agent.
+- Active means everything outside `history/`; it includes decisions, optional documents and metadata.
+  History is reported separately, and total is their sum. Agent bootstrap files are not counted.
+- The default total Markdown budget is **8,000 estimated tokens**. `--budget` accepts a positive
+  safe integer. Exceeding it is advisory and still exits `0`.
+- The human report lists the ten largest Markdown files, all documents above **2,000 estimated
+  tokens**, and groups of nonempty Markdown files with identical contents. JSON includes every
+  document, sorted by descending bytes and then path.
+- Symlinks and other non-regular entries encountered during traversal are skipped and reported.
+  Required context paths reached through symlinks are refused before inspection.
+
+Exit codes: `0` for a report, `1` for an absent, incomplete or unusable context, `2` for invalid
+arguments or unsafe paths, `3` for an unsupported schema. No content is rewritten or deleted.
+See [JSON output](/reference/json-output) for the versioned report.
+
+## Document commands
+
+```bash
+syngraphe decision new <name> [--title <title>] [--dry-run]
+syngraphe state new <name> [--title <title>] [--dry-run]
+syngraphe history new <name> [--title <title>] [--dry-run]
+
+syngraphe decision list
+syngraphe state list
+syngraphe history list
+
+syngraphe state archive <name> [--dry-run]
+```
+
+All commands accept `--scope <path>` and require an initialized, supported context.
+
+`new` creates a file in `decisions/`, `state/` or `history/`. The name is a filename, with an optional
+`.md` suffix: letters, numbers, hyphens and underscores, starting with a letter or number, at most
+120 characters before the suffix. Paths, `README`, and Windows device names are refused.
+Existing names, including case-only collisions, are conflicts; there is no overwrite option.
+
+The default heading uses the filename with hyphens and underscores replaced by spaces. `--title`
+sets a nonempty single-line heading. The generated body contains only headings:
+
+| Category | Headings |
+| --- | --- |
+| `decision` | Context; Decision; Alternatives considered; Consequences |
+| `state` | Current focus; Recent relevant changes; Next; Blockers |
+| `history` | Summary; Outcome; Follow-up |
+
+No decision number, date or status is invented. The files stay ordinary Markdown. The index is
+left for the author to curate; new files do not automatically join its always-relevant reading list.
+
+`list` prints top-level regular `.md` files in filename order, excluding `README.md` and symlinks.
+`state list` includes `current.md`. An empty list prints `No documents found.`
+
+`state archive` copies the full UTF-8 content of `state/current.md` to `history/<name>.md`, preserving
+line endings and a missing final newline, then resets current state to its original empty template.
+The archive keeps the original title. Refill current state afterwards; until then `check` reports
+`STATE002`. Review any document-relative links in the archived content.
+
+Every write uses the same plan/apply flow as `init`. A destination conflict, unsafe write path or
+stale source aborts before the first write. Each write is atomic, but the two-file archive is not a
+filesystem transaction: an IO failure after creation may leave the archive and original state both
+present, preserving the source. `--dry-run` renders this same plan without applying it.
+
+Exit codes: `0` for success or dry-run, `1` for a conflict or unusable context, `2` for invalid names,
+titles, scopes or unsafe paths, `3` for an unsupported schema.
+
 ## Programmatic use
 
 The same core is exported from the package, so a script can run the checks without parsing terminal
@@ -217,3 +298,13 @@ const { findings, errors, warnings } = await runChecks(await createCheckContext(
 
 `planInitialization(repository)` returns the same plan `init` renders, if you want to inspect it
 before deciding anything.
+
+`(await Repository.open(cwd)).inScope("packages/api")` selects a package. The returned `root` is the
+scope's absolute directory, `gitRoot` is the containing Git root, and `scope` is its Git-relative
+POSIX path (`.` at the root). `Repository.open` and `Repository.atRoot` retain their default behavior.
+`discoverScopes(repository)` returns the same scope list used by `--all`.
+
+`inspectStats(repository, budget?)` returns structured statistics. `planDocument(repository,
+"decision", "use_postgres", { title: "Use PostgreSQL" })` returns a creation plan;
+`planDocument(repository, "history", "phase_one", { archive: true })` returns an archival plan.
+`listDocuments(repository, "state")` returns the sorted paths without terminal formatting.

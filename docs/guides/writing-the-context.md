@@ -175,3 +175,28 @@ version of this practice that survives contact with a deadline.
 
 The managed block Syngraphe writes into `AGENTS.md` asks agents to do exactly that, which is most of
 why the block exists.
+
+## Helpers for the document lifecycle
+
+```bash
+syngraphe decision new use_postgres --title "Use PostgreSQL"
+syngraphe decision list
+syngraphe state new migration_notes
+syngraphe history new migration_outcome
+syngraphe state archive phase_one --dry-run
+syngraphe stats
+```
+
+`new` creates only headings, never rationale or conclusions. Add the actual knowledge yourself and
+curate the index when a new document belongs in its reading path. Every category supports `list`,
+and every creation supports `--dry-run`.
+
+`state archive phase_one` without `--dry-run` preserves the complete current state under history
+and resets current state to empty headings. Fill in the new focus before committing. The archive
+command refuses an existing filename; it never replaces an earlier phase.
+
+Use `stats` to review the largest documents, exact duplicates and estimated token totals. Its
+active/history split shows whether completed work is still mixed into current context. Budget and
+size flags are prompts for review, not reasons to delete useful knowledge automatically.
+
+All of these commands accept `--scope` for [package-local context](/guides/monorepos).

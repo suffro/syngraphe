@@ -58,7 +58,7 @@ interrupted run leaves either the old file or the new one, never half of either.
 
 ### Nothing is written outside the Git root
 
-Paths are resolved against the repository root, and anything that escapes it — `..`, an absolute
+Paths are resolved against the selected scope (the repository root by default), and anything that escapes it — `..`, an absolute
 path — is rejected before any filesystem call.
 
 ### Nothing is written through a symlink

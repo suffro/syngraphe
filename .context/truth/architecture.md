@@ -17,7 +17,7 @@ Agent integrations and checks are registries consumed by commands, never hardcod
 ## Major components
 
 - `src/cli/` — argument parsing (Commander), the `Output` sink, error-to-exit-code mapping.
-- `src/commands/` — `init`, `status`, `check`. Composition roots: they gather inspections, consult
+- `src/commands/` — `init`, `status`, `check`, `stats`, document lifecycle and scope reports. Composition roots: they gather inspections, consult
   the registries, render, and apply.
 - `src/core/` — `Repository` (path safety, repository-relative IO), `fs` (the only module that
   writes), `git` (thin `execFile` wrapper), `plan` + `render-plan` (plan/apply), `text`, `markdown`,
@@ -28,7 +28,7 @@ Agent integrations and checks are registries consumed by commands, never hardcod
   `agents-md.ts` for the canonical bootstrap file that belongs to no single agent.
 - `src/checks/` — the check contract, the shared `CheckContext`, one module per check, the registry
   and the runner.
-- `src/inspectors/` — read-only classification of `.context/`.
+- `src/inspectors/` — read-only classification and size/bloat inspection of `.context/`.
 - `src/templates/` — the generated file contents and the managed-block bodies. These strings are a
   contract: checks compare against them.
 - `docs/` — the VitePress documentation site (syngraphe.dev), with its own `package.json`. Content is
@@ -48,6 +48,26 @@ Agent integrations and checks are registries consumed by commands, never hardcod
 `init` inspects, plans, renders, applies — always in that order. `--dry-run` runs the same planner
 and stops before `applyPlan`. `check` and `status` build one `CheckContext` snapshot and read from
 it, so a single run is internally consistent.
+
+## Scopes and document lifecycle
+
+`Repository.open` still selects the Git root regardless of cwd. `inScope(path)` explicitly selects
+an existing Git-root-relative directory; `root` is the selected directory, `gitRoot` remains the
+containing Git root, and `scope` is its relative POSIX path. Writes revalidate ancestors from Git
+root. The same inspectors and checks run for every scope. Document references may reach shared
+parent/sibling context inside the Git tree; freshness considers only commits affecting the scope.
+
+`core/scopes.ts` discovers contexts via tracked/unignored Git files. `status`, `check` and `stats`
+accept `--all`, which has a separate versioned JSON envelope. Default single-check JSON is unchanged.
+Nested bootstrap bodies clarify ancestor context and `--scope`; root bootstrap bytes are unchanged.
+
+`commands/documents.ts` plans `new` for decision/state/history and `state archive`. Archive creates
+history before patching current state back to its existing template. All write paths and stale
+content are checked before any write; the two operations are not a filesystem transaction.
+
+`inspectors/stats.ts` counts regular files and UTF-8 bytes, estimates Markdown tokens per file as
+ceil(bytes/4), separates history, and reports large documents/exact duplicates. Budget and bloat
+signals are advisory; stats does not change integrity findings or rewrite files.
 
 ## External systems
 

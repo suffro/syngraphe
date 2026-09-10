@@ -20,7 +20,7 @@ One way, no cycles.
 
 - **`src/cli/`** — argument parsing, the output sink, and the mapping from errors to exit codes.
   Thin on purpose: no domain logic lives here.
-- **`src/commands/`** — `init`, `status`, `check`. Each command is a composition root: it gathers
+- **`src/commands/`** — `init`, `status`, `check`, `stats`, document operations and scope reporting. Each command is a composition root: it gathers
   inspections, consults the registries, renders, and applies.
 - **`src/core/`** — `Repository` (path safety and repository-relative IO), `fs` (the only module
   that writes), `git` (a thin `execFile` wrapper), `plan` and `render-plan`, plus small text and
@@ -31,7 +31,7 @@ One way, no cycles.
   `AGENTS.md` bootstrap that belongs to no single agent.
 - **`src/checks/`** — the `Check` contract, the shared snapshot every check reads, one module per
   check, the registry and the runner.
-- **`src/inspectors/`** — read-only classification of `.context/`.
+- **`src/inspectors/`** — read-only classification and size/bloat inspection of `.context/`.
 - **`src/templates/`** — the generated file contents and the managed-block bodies.
 
 Agent integrations and checks are **registries consumed by commands**, never conditionals scattered
@@ -138,24 +138,41 @@ All writing goes through one module. Commands never call `node:fs`.
 - Writes are complete-file writes into a temporary file in the destination directory, followed by a
   rename — so an interrupted run cannot leave a half-written file, and the rename stays on one
   filesystem and is therefore atomic.
-- `Repository.resolve` rejects absolute paths and anything that escapes the Git root.
+- `Repository.resolve` rejects absolute paths and anything that escapes the selected scope. References may reach shared context inside the Git root.
 - Before writing, every path segment from the root down is checked: a symlink anywhere along the way
   is refused rather than followed.
 - Directory walks use `lstat` and do not follow symlinks.
 
 ## Git usage
 
-Deliberately minimal. Two operations, both through `execFile` with an argument array — never a shell
+Deliberately minimal. Three operations, both through `execFile` with an argument array — never a shell
 string, so a repository path can never be interpreted as a command:
 
 - `git rev-parse --show-toplevel` — locate the repository root.
 - `git log -1 --format=%cI -- <path>` — the last commit date of a path, for freshness.
+- `git ls-files --cached --others --exclude-standard -z` — deterministic monorepo scope discovery.
 
 A missing executable, a non-repository directory, and a failed command are all the same answer: *no
-information available*. Checks that depend on Git then stay silent rather than guessing.
+information available* for root discovery and freshness. Checks that depend on commit dates then
+stay silent rather than guessing. Scope discovery fails explicitly if Git cannot enumerate files.
 
-There is no `simple-git` and no libgit binding: two commands do not justify a dependency, and
+There is no `simple-git` and no libgit binding: these commands do not justify a dependency, and
 `execFile` with an argument array is the safer call anyway.
+
+## Scope and document composition
+
+`Repository.inScope` selects an existing directory inside its `gitRoot`. Existing inspections,
+checks and planners operate unchanged on scope-relative paths; the Git client runs in that scope,
+so freshness follows its own activity. Root selection remains the default. The scoped bootstrap
+has its own canonical body that explains shared ancestor context and explicit check selection.
+
+`discoverScopes` discovers contexts from tracked and unignored files. Read-only commands aggregate
+reports using a separate JSON envelope for `--all`; single-scope check JSON is unchanged.
+
+Document creation and current-state archival use the existing create/patch plan. Archive creates
+history before resetting current state, and all path and content preconditions are checked before
+the first write. Stats is a read-only traversal, with exact byte counts, a documented token
+heuristic and advisory size/duplication signals.
 
 ## Testing
 

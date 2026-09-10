@@ -1,8 +1,8 @@
 /**
  * Minimal wrapper around the system Git executable.
  *
- * Only what v0.1 actually needs is implemented: locating the repository root
- * and reading the last commit date of a path. Git is invoked with `execFile`,
+ * Locates the repository root, reads commit dates and enumerates files for
+ * monorepo context discovery. Git is invoked with `execFile`,
  * never through a shell, so repository paths cannot be interpreted as
  * commands.
  */
@@ -58,4 +58,14 @@ export function createGitClient(cwd: string): GitClient {
       return Number.isNaN(epochMs) ? null : { iso, epochMs };
     },
   };
+}
+
+/** Paths for explicit monorepo discovery; failure must not silently omit scopes. */
+export async function listGitFiles(cwd: string): Promise<string[]> {
+  const { stdout } = await run(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+    { cwd, maxBuffer: 64 * 1024 * 1024 },
+  );
+  return stdout.split("\0").filter(Boolean);
 }

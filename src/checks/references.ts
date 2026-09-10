@@ -1,6 +1,7 @@
 import path from "node:path";
 import { extractLocalReferences } from "../core/markdown.ts";
 import type { Repository } from "../core/repository.ts";
+import { referenceExists } from "../core/scopes.ts";
 import { CONTEXT_DIRECTORY } from "../templates/context.ts";
 import type { Check, Finding } from "./types.ts";
 
@@ -60,12 +61,12 @@ async function resolves(
     candidates.push(
       path.posix.normalize(target),
       path.posix.normalize(path.posix.join(CONTEXT_DIRECTORY, target)),
+      path.relative(repository.root, path.resolve(repository.gitRoot, target)),
     );
   }
 
   for (const candidate of candidates) {
-    if (candidate.startsWith("..")) continue;
-    if ((await repository.kind(candidate)) !== "missing") return true;
+    if (await referenceExists(repository, candidate)) return true;
   }
   return false;
 }

@@ -11,6 +11,9 @@ order: 5
 - `syngraphe init`, with `--dry-run`
 - `syngraphe status`
 - `syngraphe check`, with `--json` and `--strict`
+- `syngraphe stats`, with `--json` and an advisory `--budget`
+- `decision`, `state`, `history`: `new` and `list`, plus `state archive`
+- nested contexts selected by `--scope`, and `--all` for monorepo reports
 - the `.context/` schema v1 and its templates
 - managed blocks in `AGENTS.md` and `CLAUDE.md`
 - the agent-integration registry: Claude (shim), Cursor and Codex (native)
@@ -30,7 +33,8 @@ tracking every vendor's configuration format forever, and would make Syngraphe t
 when a vendor changes theirs.
 
 **Owning your context.** The files are yours. Syngraphe writes templates once, checks structure, and
-otherwise does not read your prose for meaning, normalise it, or rewrite it.
+does not read your prose for meaning or normalise it. The explicit `state archive` command
+preserves current state in history before resetting its template.
 
 **A required service.** No account, no hosted index, no phoning home. If a future version gains
 optional AI assistance, the deterministic core still works offline without it.
@@ -80,7 +84,8 @@ surface and no capability.
 **A web dashboard.** The repository is the interface. `git log .context/` is the history view.
 
 **Multi-repository or organization-level context.** Syngraphe is about one repository, which is what
-makes "the context belongs to the repository" true rather than aspirational.
+makes "the context belongs to the repository" true rather than aspirational. Nested contexts inside
+that same Git repository are supported; see [monorepos](/guides/monorepos).
 
 ## How to read this page
 

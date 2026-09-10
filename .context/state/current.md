@@ -2,11 +2,23 @@
 
 ## Current focus
 
-Syngraphe v0.1 is implemented: `init` (with `--dry-run`), `status`, and `check` (with `--json` and
-`--strict`), the schema v1 context templates, the managed-block subsystem, the agent-integration
-registry (Claude shim, Cursor and Codex native), and the deterministic check registry.
+Syngraphe implements initialization, integrity checks, statistics and document lifecycle helpers,
+with explicit package scopes for nested/monorepo context. Schema v1, the root managed block and
+single-scope check JSON remain unchanged. The new features are implemented but not released; package release metadata has not been changed.
 
 ## Recent relevant changes
+
+- `stats` reports bytes, words, estimated tokens, active/history totals, large Markdown documents
+  and exact duplicates; its token budget is advisory and JSON is independently versioned.
+- `decision`, `state`, `history` support `new` and `list`. `state archive` preserves current state in
+  a new history file then resets the state template, with dry-run and preflight safety checks.
+- `--scope` selects an existing directory relative to Git root. `--all` on read-only reports
+  discovers tracked/unignored contexts. Nested agent bootstraps explain ancestor context and scope
+  selection; default root behavior is preserved. See `decisions/0004-explicit-scopes-and-context-tools.md`.
+- Documentation now covers the document lifecycle, stats JSON and explicit monorepo discovery.
+- Local verification on macOS: 115 tests passed; typecheck, lint, CLI build, documentation build,
+  package dry-run inspection and repository `check --all` passed. Linux and Windows were not run
+  locally; scope resolution normalizes Git root separators and document names reject Windows devices.
 
 - Initial implementation of the package, CLI, core, managed blocks, integrations and checks.
 - Test suite covering managed-block behaviour, path safety, initialization (idempotency,

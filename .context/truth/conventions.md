@@ -37,4 +37,7 @@ remove them afterwards. They never touch the developer's own repository.
   changes what every repository is validated against.
 - Any command that modifies the repository builds a plan first; inspection and writing never happen
   in the same function.
+- Root bootstrap content stays frozen; nested bootstraps use their own canonical body.
+- Scope paths use forward slashes and are Git-root-relative; filenames created by document commands
+  use portable ASCII stems, without automatic dates or decision numbering.
 - New guards get a test that observes them failing, not only passing.

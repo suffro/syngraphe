@@ -64,6 +64,7 @@ export async function applyPlan(repository: Repository, plan: Plan): Promise<voi
   }
 
   for (const operation of plan.operations) {
+    await repository.assertWritablePath(operation.path);
     if (operation.type === "create") {
       const kind = await repository.kind(operation.path);
       if (kind !== "missing") {
