@@ -87,11 +87,7 @@ const capabilities = [
           <h1>Repository context that stays true.</h1>
 
           <p class="syg-lede">
-            Syngraphe keeps a repository's own context in a small <code>.context/</code> directory
-            of Markdown, one set of files your team and your coding agents both read.
-            <code>AGENTS.md</code> points the agents at it; <code>syngraphe check</code> verifies
-            the files are there, their references resolve, and the bootstrap block has not been
-            edited.
+            Syngraphe keeps repository context in a small, Git-native <code>.context/</code> directory of Markdown shared by both humans and coding agents. <code>AGENTS.md</code> points agents to it, while syngraphe check verifies the context is structurally intact: required files exist, references resolve, and the managed bootstrap block has not drifted.
           </p>
 
           <div class="syg-actions">
