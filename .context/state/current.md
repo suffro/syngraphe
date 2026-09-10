@@ -3,10 +3,23 @@
 ## Current focus
 
 Syngraphe implements initialization, integrity checks, statistics and document lifecycle helpers,
-with explicit package scopes for nested/monorepo context. Schema v1, the root managed block and
-single-scope check JSON remain unchanged. The new features are implemented but not released; package release metadata has not been changed.
+with explicit package scopes for nested/monorepo context. A bundled GitHub Action now adds
+runner annotations, summaries and versioned reports on top of the same core. Schema v1, the root managed block and
+single-scope check JSON remain unchanged. The Action release is being prepared as `action-v1.0.0`, with `action-v1` for compatible updates.
+These tags are independent of the npm CLI; package release metadata has not been changed.
 
 ## Recent relevant changes
+
+- Previous statistics/document/monorepo work was committed and pushed to `origin/main` as
+  `e7a5bf50d9a4be72cd751fba4ec5bb91e58acb96`; the remote hash was read back successfully.
+- Root `action.yml` provides `check`, `stats`, and `check-and-stats`, checkout/scope selection,
+  monorepo discovery, strict and report-only validation, and an optional per-scope budget gate.
+- Action reports are stored under runner temp, with bounded summaries and escaped file/line
+  annotations. The bundle runs standalone; no npm install, API token or target-code execution.
+- The new CI matrix targets Linux, macOS and Windows, with the local Action before dependency
+  installation, metadata/runtime tests, and deterministic bundle/third-party-notice checks.
+  No Action release tag or Marketplace publication has been made. See
+  `decisions/0005-bundled-github-action.md`.
 
 - `stats` reports bytes, words, estimated tokens, active/history totals, large Markdown documents
   and exact duplicates; its token budget is advisory and JSON is independently versioned.
@@ -16,9 +29,11 @@ single-scope check JSON remain unchanged. The new features are implemented but n
   discovers tracked/unignored contexts. Nested agent bootstraps explain ancestor context and scope
   selection; default root behavior is preserved. See `decisions/0004-explicit-scopes-and-context-tools.md`.
 - Documentation now covers the document lifecycle, stats JSON and explicit monorepo discovery.
-- Local verification on macOS: 115 tests passed; typecheck, lint, CLI build, documentation build,
-  package dry-run inspection and repository `check --all` passed. Linux and Windows were not run
-  locally; scope resolution normalizes Git root separators and document names reject Windows devices.
+- Latest local verification on macOS with Node 24: all 130 tests passed (15 Action tests), including
+  standalone bundle execution and report/annotation behavior. Typecheck, lint, CLI/Action builds,
+  documentation build, package dry-run inspection and repository `check --all` passed.
+  The bundle drift guard was observed rejecting an intentionally changed artifact, then passing
+  after restoration. Linux/Windows and the GitHub-hosted CI matrix have not yet been executed.
 
 - Initial implementation of the package, CLI, core, managed blocks, integrations and checks.
 - Test suite covering managed-block behaviour, path safety, initialization (idempotency,

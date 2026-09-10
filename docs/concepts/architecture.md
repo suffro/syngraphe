@@ -74,6 +74,24 @@ Three consequences fall out of this, none of which needed extra code:
 The same shape is what a future `update` or `reconcile` command would reuse; nothing in the plan
 types is specific to initialization.
 
+## GitHub Action adapter
+
+The root `action.yml` runs `action/dist/index.cjs` on the runner's Node 24 runtime. Sources in
+`action/src/` call the existing check runner, check exit policy, scope discovery and stats inspector.
+The adapter parses workflow inputs, maps paths for annotations and collects a versioned report;
+it never shells out to the CLI or executes code from the checked-out project.
+
+The generated bundle includes all runtime dependencies. `@actions/core` handles GitHub outputs,
+annotations and summaries; it is a development dependency because the bundle is distributed through
+Git, separately from the npm CLI. Esbuild generates that bundle and third-party notices;
+`action:check` compares a fresh in-memory build to committed files. Tests validate metadata with
+`yaml`, another development-only dependency. CLI package contents and production dependencies stay
+the same.
+
+Action reports are written through the filesystem abstraction to fresh runner temporary directories.
+The GitHub toolkit writes the runner-provided output and summary files. No workflow reports are
+written into the inspected checkout. See [the Action reference](/reference/github-action).
+
 ## Managed blocks as a generic subsystem
 
 `src/managed/block.ts` knows about text and nothing else — not `AGENTS.md`, not Claude, not agents at

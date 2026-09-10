@@ -18,6 +18,7 @@ order: 5
 - managed blocks in `AGENTS.md` and `CLAUDE.md`
 - the agent-integration registry: Claude (shim), Cursor and Codex (native)
 - the deterministic check registry, with stable finding and exit codes
+- the bundled GitHub Action with annotations, job summaries and exportable reports
 
 That is the whole surface. It is small because the small version is the one you can adopt this
 afternoon and audit in a single `git diff`.
@@ -77,9 +78,6 @@ file that quietly disables everything. Not in v0.1.
 
 **MCP server, vector database, embeddings.** The context is a handful of Markdown files. Retrieval
 infrastructure for something that fits in a directory listing is machinery without a problem.
-
-**A GitHub Action.** `npx syngraphe check` is one line in any workflow. A wrapper would add a release
-surface and no capability.
 
 **A web dashboard.** The repository is the interface. `git log .context/` is the history view.
 

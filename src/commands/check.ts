@@ -44,7 +44,7 @@ export async function runCheck(options: CheckOptions): Promise<ExitCode> {
   return exitCode;
 }
 
-function exitCodeFor(run: CheckRun, strict: boolean): ExitCode {
+export function exitCodeFor(run: CheckRun, strict: boolean): ExitCode {
   if (run.findings.some((finding) => finding.code === "MANIFEST003")) {
     return EXIT_UNSUPPORTED_SCHEMA;
   }

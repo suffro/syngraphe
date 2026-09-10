@@ -3,7 +3,8 @@
 ## Repository conventions
 
 - TypeScript, ESM, modern Node LTS (>= 22.18). Node built-ins are preferred over dependencies;
-  `commander` is the only runtime dependency.
+  `commander` is the only CLI runtime dependency. `@actions/core`, `esbuild` and `yaml` are
+  development dependencies for the separately bundled GitHub Action.
 - Relative imports carry the `.ts` extension: `tsc` rewrites them on build, and Node's type
   stripping runs the same sources directly in tests.
 - Comments explain non-obvious decisions and rejected alternatives, not what the code already says.
@@ -18,6 +19,9 @@ npm test           # node --test over test/**/*.test.ts
 npm run typecheck  # tsc --noEmit over src/ and test/
 npm run lint       # biome check .
 npm run format     # biome format --write .
+npm run action:build # rebuild the committed Action and third-party notices
+npm run action:check # fail on bundle/source drift without writing
+npm run test:action  # adapter and standalone bundle tests
 
 npm run docs:dev   # VitePress dev server for docs/
 npm run docs:build # build the documentation site
@@ -41,3 +45,9 @@ remove them afterwards. They never touch the developer's own repository.
 - Scope paths use forward slashes and are Git-root-relative; filenames created by document commands
   use portable ASCII stems, without automatic dates or decision numbering.
 - New guards get a test that observes them failing, not only passing.
+
+- Any change to shared `src/` or `action/src/` must keep the committed Action bundle synchronized.
+  Never hand-edit generated bundle files. The LF rule in `.gitattributes` keeps bundle verification
+  portable. Preserve generated third-party notices with the bundle.
+- Action documentation lives in `docs/reference/github-action.md`; `action/README.md` points there.
+  Do not invent release tags or claim Marketplace availability before an actual release.

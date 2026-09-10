@@ -1,0 +1,2 @@
+# The Action bundle is reproduced byte-for-byte on every supported runner.
+action/dist/* text eol=lf

@@ -7,7 +7,8 @@ order: 4
 # Continuous integration
 
 `syngraphe check` is built for this: offline, deterministic, read-only, with stable exit codes and a
-versioned JSON payload. No network access, no state, no cache.
+versioned JSON payload. Checks are offline and read-only. The official GitHub Action additionally
+provides annotations, a job summary, statistics and an exportable JSON report.
 
 ## The minimal job
 
@@ -21,14 +22,13 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Freshness compares commit dates, so the check needs real history.
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: suffro/syngraphe@action-v1
         with:
-          node-version: 22
-      - run: npx syngraphe check
+          command: check-and-stats
 ```
 
 ```yaml [GitLab CI]
@@ -44,8 +44,14 @@ npx syngraphe check
 
 :::
 
-Syngraphe does not ship a GitHub Action, and deliberately so: the command is one line, and a wrapper
-would add a release surface without adding capability.
+Use `action-v1` for compatible Action updates or `action-v1.0.0` for the exact release.
+Pin a reviewed full commit SHA for reproducibility. Action tags are separate from npm CLI tags.
+The repository's own CI uses `uses: ./` to exercise the bundle. The Action supplies its Node runtime,
+so consumers need no `setup-node` or npm installation step.
+
+See the [Action reference](/reference/github-action) for `strict`, report-only validation,
+`working-directory`, `scope`/`all`, token budgets, annotations and artifact examples. The CLI remains
+available for GitLab and other runners.
 
 ## `fetch-depth` matters
 

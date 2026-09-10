@@ -11,6 +11,7 @@ import { randomBytes } from "node:crypto";
 import {
   lstat,
   mkdir,
+  mkdtemp,
   readdir,
   readFile,
   realpath,
@@ -100,4 +101,9 @@ export async function readBinaryFile(absolutePath: string): Promise<Buffer | nul
     if (isNotFound(error)) return null;
     throw error;
   }
+}
+
+/** Unique runner-owned report directory; never place action reports in the inspected checkout. */
+export async function createTemporaryDirectory(parent: string, prefix: string): Promise<string> {
+  return mkdtemp(path.join(parent, prefix));
 }

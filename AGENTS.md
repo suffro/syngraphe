@@ -112,6 +112,12 @@ Do not assume a universal layout. Inspect the repository and identify at least:
 
 When the layout changes materially, update this file if future agents would otherwise be misled.
 
+The GitHub Action's canonical sources are `action/src/`, with its public metadata in root
+`action.yml`. Its committed runtime bundle and license notices are generated under `action/dist/`
+by `scripts/build-action.mjs`. The CLI sources in `src/` are shared by the Action, so a core change
+also requires `npm run action:build` and `npm run action:check`. Never hand-edit the bundle.
+The CI matrix in `.github/workflows/ci.yml` exercises the local Action before installing dependencies.
+
 ## Conventions
 
 Match the surrounding repository unless this file or the user explicitly says otherwise.

@@ -47,14 +47,20 @@
     "format": "biome format --write .",
     "docs:dev": "npm --prefix docs run dev",
     "docs:build": "npm --prefix docs run build",
-    "docs:preview": "npm --prefix docs run preview"
+    "docs:preview": "npm --prefix docs run preview",
+    "action:build": "node scripts/build-action.mjs",
+    "action:check": "node scripts/build-action.mjs --check",
+    "test:action": "node --test \"test/action*.test.ts\""
   },
   "dependencies": {
     "commander": "^14.0.1"
   },
   "devDependencies": {
+    "@actions/core": "3.0.1",
     "@biomejs/biome": "^2.5.12",
     "@types/node": "^24.10.1",
-    "typescript": "^5.9.3"
+    "esbuild": "0.28.2",
+    "typescript": "^5.9.3",
+    "yaml": "2.9.0"
   }
 }

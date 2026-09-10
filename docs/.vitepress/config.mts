@@ -95,6 +95,7 @@ const sidebar = [
       { text: "Checks and findings", link: "/reference/checks" },
       { text: "JSON output", link: "/reference/json-output" },
       { text: "Exit codes", link: "/reference/exit-codes" },
+      { text: "GitHub Action", link: "/reference/github-action" },
     ],
   },
   {

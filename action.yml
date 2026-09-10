@@ -1,0 +1,64 @@
+name: Syngraphe Repository Context
+author: Lorenzo S.
+description: Validate repository context, report context bloat, and annotate findings in pull requests and job summaries.
+branding:
+  icon: book-open
+  color: gray-dark
+inputs:
+  command:
+    description: 'Run check, stats, or check-and-stats.'
+    default: check
+  working-directory:
+    description: 'Checkout location relative to GITHUB_WORKSPACE. Commands use its Git root.'
+    default: '.'
+  scope:
+    description: 'Optional existing scope directory relative to the selected Git root. Mutually exclusive with all.'
+    default: ''
+  all:
+    description: 'Discover and report all tracked or unignored contexts in the selected repository.'
+    default: 'false'
+  strict:
+    description: 'Treat check warnings as validation failures. Requires check or check-and-stats.'
+    default: 'false'
+  budget:
+    description: 'Advisory estimated Markdown token budget per scope, including history.'
+    default: '8000'
+  fail-on-error:
+    description: 'Fail the step on validation failures. False enables report-only validation; operational errors still fail.'
+    default: 'true'
+  fail-on-budget:
+    description: 'Fail the step if any scope exceeds budget. Requires stats or check-and-stats; independent of fail-on-error.'
+    default: 'false'
+  annotations:
+    description: 'Emit file/line annotations for findings and warnings for exceeded budgets.'
+    default: 'true'
+  summary:
+    description: 'Append a bounded report to the GitHub job summary.'
+    default: 'true'
+  max-annotations:
+    description: 'Maximum emitted finding annotations (0-1000), errors first. Full findings remain in the JSON report.'
+    default: '50'
+outputs:
+  ok:
+    description: 'Whether validation passed, independently of fail-on-error.'
+  exit-code:
+    description: 'Validation code: 0 success, 1 integrity/strict/budget failure, 2 usage/unsafe path, 3 unsupported schema, 4 internal failure.'
+  errors:
+    description: 'Number of error findings from checks.'
+  warnings:
+    description: 'Number of warning findings from checks.'
+  failure-count:
+    description: 'Number of scope check/stats execution failures, separate from integrity findings.'
+  scope-count:
+    description: 'Number of reported contexts.'
+  estimated-tokens:
+    description: 'Total estimated Markdown tokens across scopes; zero if stats was not requested.'
+  bytes:
+    description: 'Total context file bytes across scopes; zero if stats was not requested.'
+  budget-exceeded:
+    description: 'Whether any measured scope exceeded the budget, even if fail-on-budget is false.'
+  report-path:
+    description: 'Absolute path of the versioned JSON report under RUNNER_TEMP, available even on validation failure.'
+runs:
+  using: node24
+  main: action/dist/index.cjs

@@ -224,6 +224,27 @@ too.
 
 `version` describes the payload shape and changes only when the shape does.
 
+## GitHub Action
+
+The official Action runs checks, statistics, or both, with monorepo scopes, file/line annotations,
+job summaries and a JSON report. It bundles Syngraphe and needs no package install or API token.
+
+```yaml
+- uses: actions/checkout@v7
+  with:
+    fetch-depth: 0
+- uses: suffro/syngraphe@action-v1
+  with:
+    command: check-and-stats
+    all: 'true'
+    strict: 'true'
+```
+
+Action releases use separate tags: `action-v1.0.0` for an exact release and `action-v1` for
+compatible updates. Pin a reviewed full commit SHA when reproducibility is required.
+See the [Action reference](docs/reference/github-action.md) for inputs,
+outputs, report-only mode and optional budget enforcement.
+
 ## Agent integrations
 
 `AGENTS.md` is the canonical bootstrap file. Agents that read it need nothing else:
@@ -250,6 +271,7 @@ Implemented:
 - the `.context/` schema v1 and its templates
 - managed blocks in `AGENTS.md` and `CLAUDE.md`
 - the deterministic check registry
+- the bundled GitHub Action with annotations, summaries and JSON reports
 
 ## Non-goals
 
@@ -258,7 +280,7 @@ not synchronize hooks, permissions, MCP configuration, subagents, skills, or ven
 commands. Vendor features stay vendor-specific.
 
 Not implemented yet, by design: semantic AI analysis, `doctor`, `update`, `reconcile`, MCP servers,
-vector databases, cloud services, direct AI provider integrations, GitHub Actions, Git hooks and
+vector databases, cloud services, direct AI provider integrations, Git hooks and
 background services.
 
 Destructive removal is also not implemented. When it arrives it will be an explicit command — never
@@ -274,6 +296,8 @@ npm run build      # compile to dist/
 npm test           # node:test suites, including real temporary Git repositories
 npm run typecheck  # tsc --noEmit over src/ and test/
 npm run lint       # Biome
+npm run action:build # regenerate the committed GitHub Action bundle
+npm run action:check # fail if the bundle differs from its sources
 ```
 
 The source layout follows the dependency direction `cli → commands → core → filesystem/Git`. Agent
