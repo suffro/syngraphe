@@ -14,7 +14,9 @@
 Syngraphe keeps repository context versioned, current, and understandable by both humans and coding
 agents.
 
-It is a small, Git-native command-line tool that creates and validates a `.context/` directory of
+It's a context layer behind AGENTS.md — Git-native Markdown for architecture, current state and decisions, with deterministic integrity checks.
+
+All made quick and easy with a small, Git-native command-line tool that creates and validates a `.context/` directory of
 Markdown documents describing what a repository is, how it is built, and what is happening in it
 right now.
 
