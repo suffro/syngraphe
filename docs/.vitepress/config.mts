@@ -90,12 +90,12 @@ const sidebar = [
     collapsed: false,
     items: [
       { text: "CLI commands", link: "/reference/cli" },
+      { text: "GitHub Action", link: "/reference/github-action" },
       { text: "Context schema v1", link: "/reference/context-schema" },
       { text: "Managed blocks", link: "/reference/managed-blocks" },
       { text: "Checks and findings", link: "/reference/checks" },
       { text: "JSON output", link: "/reference/json-output" },
       { text: "Exit codes", link: "/reference/exit-codes" },
-      { text: "GitHub Action", link: "/reference/github-action" },
     ],
   },
   {

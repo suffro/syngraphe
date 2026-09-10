@@ -31,7 +31,11 @@ inside that directory. The scope argument itself is always Git-root-relative, us
 The option can appear before or after the command. Nothing here reaches the network.
 
 `status`, `check`, and `stats` also accept `--all`; it cannot be combined with `--scope`.
-See [nested contexts and monorepos](/guides/monorepos) for discovery and inheritance rules.
+
+::: info Nested contexts and monorepos
+Use `--scope <path>` to manage context for a specific package or directory within your repository.
+See [Nested contexts and monorepos](/guides/monorepos) for examples and details.
+:::
 
 ## `syngraphe init`
 
