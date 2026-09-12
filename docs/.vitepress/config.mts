@@ -39,6 +39,25 @@ const structuredData = {
       name: "Syngraphe",
       description,
       inLanguage: "en",
+      publisher: { "@id": `${hostname}/#organization` },
+    },
+    // The logo a knowledge panel or a rich result draws the project with. It is not the icon beside
+    // a search result — that one is the favicon, and no markup chooses it — so this names the
+    // wordmark-free square on a light background, which is the surface those panels render on.
+    {
+      "@type": "Organization",
+      "@id": `${hostname}/#organization`,
+      name: "Syngraphe",
+      url: `${hostname}/`,
+      logo: {
+        "@type": "ImageObject",
+        "@id": `${hostname}/#logo`,
+        url: `${hostname}/static/png/logo-square-light.png`,
+        width: 2000,
+        height: 2000,
+        caption: "Syngraphe",
+      },
+      sameAs: [repository, "https://www.npmjs.com/package/syngraphe"],
     },
     {
       "@type": "SoftwareApplication",
@@ -142,8 +161,23 @@ export default defineConfig({
 
   sitemap: { hostname },
 
+  // The icons. `/favicon.ico` sits at the root rather than under `/static/` because browsers and
+  // Google's favicon crawler probe that exact path when they trust no declaration, and a 404 there
+  // is an invitation to guess — Google had guessed the bare mark, a transparent full-bleed glyph
+  // that its round search-result crop cut into. Every icon here is the same artwork: the mark on an
+  // opaque `#1c1c1f` square at a little over half the canvas, so the crop never reaches it.
+  //
+  // The PNGs exist because Google asks for a square favicon larger than 48×48 and reads PNG without
+  // having to pick an entry out of an ICO; the ICO stays for browser tabs, which still ask for it by
+  // name. `sizes` is declared honestly on both, so a client picks a size instead of scaling one.
   head: [
-    ["link", { rel: "icon", href: "/static/icon.ico", sizes: "any" }],
+    ["link", { rel: "icon", href: "/favicon.ico", sizes: "16x16 32x32 48x48 256x256" }],
+    ["link", { rel: "icon", type: "image/png", sizes: "96x96", href: "/static/png/icon-96.png" }],
+    ["link", { rel: "icon", type: "image/png", sizes: "192x192", href: "/static/png/icon-192.png" }],
+    [
+      "link",
+      { rel: "apple-touch-icon", sizes: "180x180", href: "/static/png/apple-touch-icon.png" },
+    ],
     ["meta", { name: "theme-color", content: "#1c1c1f" }],
   ],
 

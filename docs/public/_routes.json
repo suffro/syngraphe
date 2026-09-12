@@ -4,6 +4,7 @@
   "exclude": [
     "/assets/*",
     "/static/*",
+    "/favicon.ico",
     "/robots.txt",
     "/sitemap.xml",
     "/llms.txt",

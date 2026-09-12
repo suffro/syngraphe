@@ -42,6 +42,11 @@ Agent integrations and checks are registries consumed by commands, never hardcod
   Markdown under `docs/getting-started/`, `docs/guides/`, `docs/reference/` and `docs/concepts/`; the
   branded theme lives in `docs/.vitepress/theme/`, which also registers the components pages may use
   in Markdown: `Tabs`/`Tab` and `ExampleNote`.
+- Site assets live under `docs/public/static/`, with one deliberate exception: `docs/public/favicon.ico`
+  is served from the root because browsers and Google's favicon crawler probe `/favicon.ico` by name,
+  and a 404 there lets a crawler pick its own icon. It and the PNG icons beside the logos in
+  `static/png/` are one artwork — the mark on an opaque square, sized so a round crop cannot reach it —
+  declared together in the `head` of `docs/.vitepress/config.mts`.
 - The site also publishes a machine-readable surface: `docs/.vitepress/llms.mjs` generates
   `llms.txt`, `llms-full.txt` and one Markdown twin per page at build time, and
   `docs/functions/_middleware.js` serves those twins to `Accept: text/markdown`. Three places derive

@@ -58,6 +58,14 @@ These tags are independent of the npm CLI; package release metadata has not been
 - The docs site publishes a Markdown surface for agents: `llms.txt`, `llms-full.txt`, a `.md` twin
   per page, `Accept: text/markdown` negotiation through a Cloudflare Pages Function, per-page
   Markdown and "Ask an AI" menus, and a `robots.txt` that names the assistant crawlers explicitly.
+- The search-result icon was Google's own choice, not the site's: with only `/static/icon.ico`
+  declared and `/favicon.ico` returning the 404 page, Google had cached the bare mark — a
+  transparent, full-bleed glyph its round crop cut into, and nearly invisible on a dark results
+  page. The icon now ships at `/favicon.ico` (16/32/48 rendered from the logo, the original 256
+  entry carried over byte-for-byte) plus 96/192 PNGs and a 180 `apple-touch-icon`, all the same
+  opaque square. Nothing in markup selects a search-result logo; the favicon is that logo, so the
+  fix is the file and the declaration. The JSON-LD graph gained an `Organization` with a `logo`,
+  which feeds knowledge panels rather than the result icon.
 - The docs distinguish generated content from illustration explicitly. Every block that is invented
   prose carries an `ExampleNote` label above it, outside the fence; blocks that are real output or
   real generated files are labelled too. The quickstart was the page where this mattered most: its
@@ -75,6 +83,8 @@ These tags are independent of the npm CLI; package release metadata has not been
 - Complete Marketplace publication in the GitHub release editor for `action-v1.0.0`, then verify
   the public listing. Release URL: https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0
 
+- After the icon change is deployed, request indexing of the home page in Search Console so the
+  cached favicon is refreshed; Google documents that this can take days to weeks.
 - Confirm the `syngraphe.dev` domain and Pages project before announcing the docs URL.
 - Use the tool on real repositories and collect friction before adding surface.
 - Candidates for later versions, none of them started: `doctor`, `update`, `reconcile`, and an

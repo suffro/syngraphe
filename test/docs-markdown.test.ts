@@ -42,6 +42,7 @@ describe("markdownPathFor", () => {
     assert.equal(markdownPathFor("/llms.txt"), null);
     assert.equal(markdownPathFor("/reference/cli.md"), null);
     assert.equal(markdownPathFor("/static/svg/logo-dark.svg"), null);
+    assert.equal(markdownPathFor("/favicon.ico"), null);
   });
 });
 
