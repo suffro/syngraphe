@@ -53,8 +53,27 @@ flag to force past this: fix the conflict, then run again.
 
 ### Writes are complete or absent
 
-Every write goes to a temporary file in the destination directory and is then renamed into place. An
+Every write goes to a temporary file in the destination directory and is published from there. An
 interrupted run leaves either the old file or the new one, never half of either.
+
+### A new document is never created twice
+
+Updating a file and creating one are published differently. An update is renamed over its
+destination. A create is linked into place, which fails if the destination exists — so the question
+"is this path free?" and the act of claiming it are a single filesystem operation.
+
+This matters when two Syngraphe runs create the same document at once. Both can plan it while the
+path is still missing, and both can pass their preflight; exactly one then publishes, and the other
+stops with an integrity failure rather than replacing a file it never read:
+
+```text
+Cannot create .context/decisions/retry-policy.md: it already exists.
+The repository changed after the plan was built. Re-run the command.
+```
+
+Filesystems without hard links — FAT, some network shares — still decide a single winner, because
+the file is created there with an exclusive open instead. Only on those filesystems does the created
+file become visible before its contents land.
 
 ### Nothing is written outside the Git root
 
@@ -99,6 +118,7 @@ daemon, and does not modify any configuration outside the files listed in its pl
 | Guess where a malformed block ends           | Guessing wrong consumes user-authored text.                          |
 | Adopt an unrelated `.context/`               | It may belong to another tool, or hold irreplaceable work.           |
 | Write through a symlink                      | The target may be outside the repository.                            |
+| Replace a file another run just created      | The losing run never read what it would destroy.                     |
 | Downgrade an unsupported schema              | The version describes the files; lowering it makes it a lie.         |
 | Rewrite existing context files to templates  | Your content is not Syngraphe's to normalise.                        |
 | Delete anything                              | v0.1 has no destructive operation at all.                            |

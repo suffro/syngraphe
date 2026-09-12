@@ -10,6 +10,7 @@ import path from "node:path";
 import { SyngrapheError } from "./errors.ts";
 import { EXIT_USAGE } from "./exit-codes.ts";
 import {
+  createTextFileExclusive,
   ensureDirectory,
   fileSize,
   listDirectory,
@@ -131,15 +132,30 @@ export class Repository {
   }
 
   /**
-   * Write a complete file, after checking that neither the target nor any of
-   * its parent directories is a symlink. Syngraphe refuses to write through
-   * links rather than trying to decide which ones are safe.
+   * Write a complete file, replacing an existing one, after checking that
+   * neither the target nor any of its parent directories is a symlink.
+   * Syngraphe refuses to write through links rather than trying to decide which
+   * ones are safe.
    */
   async write(relativePath: string, contents: string): Promise<void> {
     const absolute = this.resolve(relativePath);
     await this.assertWritablePath(relativePath);
     await ensureDirectory(path.dirname(absolute));
     await writeTextFileAtomic(absolute, contents);
+  }
+
+  /**
+   * Create a complete file that must not exist yet, under the same path-safety
+   * rules as `write`.
+   *
+   * Returns false instead of replacing anything when the destination is already
+   * taken. Exclusivity comes from the publishing operation itself, so a caller
+   * that first asked `kind()` is still safe if the answer went stale.
+   */
+  async create(relativePath: string, contents: string): Promise<boolean> {
+    const absolute = this.resolve(relativePath);
+    await this.assertWritablePath(relativePath);
+    return createTextFileExclusive(absolute, contents);
   }
 
   async makeDirectory(relativePath: string): Promise<void> {

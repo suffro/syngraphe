@@ -281,9 +281,11 @@ The archive keeps the original title. Refill current state afterwards; until the
 `STATE002`. Review any document-relative links in the archived content.
 
 Every write uses the same plan/apply flow as `init`. A destination conflict, unsafe write path or
-stale source aborts before the first write. Each write is atomic, but the two-file archive is not a
-filesystem transaction: an IO failure after creation may leave the archive and original state both
-present, preserving the source. `--dry-run` renders this same plan without applying it.
+stale source aborts before the first write. A new document is created exclusively: if another
+process takes the name first, the command fails with exit code `1` instead of overwriting it. Each
+write is atomic, but the two-file archive is not a filesystem transaction: an IO failure after
+creation may leave the archive and original state both present, preserving the source. `--dry-run`
+renders this same plan without applying it.
 
 Exit codes: `0` for success or dry-run, `1` for a conflict or unusable context, `2` for invalid names,
 titles, scopes or unsafe paths, `3` for an unsupported schema.

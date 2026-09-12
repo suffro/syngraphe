@@ -49,11 +49,26 @@ export function emptyPlan(): Plan {
   return { operations: [], unchanged: [], conflicts: [] };
 }
 
+function destinationTaken(path: string): SyngrapheError {
+  return new SyngrapheError(
+    `Cannot create ${path}: it already exists.`,
+    EXIT_INTEGRITY_FAILURE,
+    "The repository changed after the plan was built. Re-run the command.",
+  );
+}
+
 /**
  * Apply a plan.
  *
  * All preconditions are verified before the first write, so a plan built
  * against stale state fails without leaving the repository half modified.
+ *
+ * The preflight is not what keeps `create` exclusive: between the check and the
+ * write, another process can take the destination. The two intents are
+ * therefore published differently — `create` claims its path with an operation
+ * that fails when the path is taken, `patch` replaces content it has already
+ * compared. The preflight stays because it turns the ordinary stale-plan case
+ * into a failure before anything is written at all.
  */
 export async function applyPlan(repository: Repository, plan: Plan): Promise<void> {
   if (plan.conflicts.length > 0) {
@@ -67,13 +82,7 @@ export async function applyPlan(repository: Repository, plan: Plan): Promise<voi
     await repository.assertWritablePath(operation.path);
     if (operation.type === "create") {
       const kind = await repository.kind(operation.path);
-      if (kind !== "missing") {
-        throw new SyngrapheError(
-          `Cannot create ${operation.path}: it already exists.`,
-          EXIT_INTEGRITY_FAILURE,
-          "The repository changed after the plan was built. Re-run the command.",
-        );
-      }
+      if (kind !== "missing") throw destinationTaken(operation.path);
     } else {
       const current = await repository.read(operation.path);
       if (current !== operation.before) {
@@ -87,7 +96,12 @@ export async function applyPlan(repository: Repository, plan: Plan): Promise<voi
   }
 
   for (const operation of plan.operations) {
-    const contents = operation.type === "create" ? operation.contents : operation.after;
-    await repository.write(operation.path, contents);
+    if (operation.type === "patch") {
+      await repository.write(operation.path, operation.after);
+      continue;
+    }
+    if (!(await repository.create(operation.path, operation.contents))) {
+      throw destinationTaken(operation.path);
+    }
   }
 }

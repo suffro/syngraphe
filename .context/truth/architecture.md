@@ -77,6 +77,13 @@ Nested bootstrap bodies clarify ancestor context and `--scope`; root bootstrap b
 history before patching current state back to its existing template. All write paths and stale
 content are checked before any write; the two operations are not a filesystem transaction.
 
+`applyPlan` publishes the two operation types differently. A `create` goes through
+`Repository.create`, which claims the destination exclusively and reports it taken rather than
+replacing it; the preflight `kind()` check stays, but it is what makes a stale plan fail before the
+first write, not what keeps creation exclusive. A `patch` still goes through `Repository.write`
+after its expected content matched. `init`, the three `<category> new` commands and `state archive`
+all inherit this from the shared plan/apply core.
+
 `inspectors/stats.ts` counts regular files and UTF-8 bytes, estimates Markdown tokens per file as
 ceil(bytes/4), separates history, and reports large documents/exact duplicates. Budget and bloat
 signals are advisory; stats does not change integrity findings or rewrite files.
@@ -106,7 +113,9 @@ stay silent rather than guessing.
   for byte, including line endings and a missing final newline.
 - Initialization is idempotent, and drift is reported rather than overwritten.
 - No writes outside the Git root, and never through a symlink.
-- Writes are complete-file writes (temporary file + rename).
+- Writes are complete-file writes: the file is staged in full beside its destination, then published.
+  Updates are published with a rename; creates are published with a link, which fails when the
+  destination exists, so concurrent creates cannot overwrite each other.
 - Finding codes, exit codes, the `--json` shape and the context schema are stable contracts.
 - The repository must stay fully usable if Syngraphe disappears: Syngraphe implements the
   repository-context protocol, the protocol does not depend on Syngraphe.

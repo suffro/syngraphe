@@ -10,6 +10,14 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Recent relevant changes
 
+- `create` operations are now exclusive at the filesystem level. The apply preflight could not keep
+  two concurrent runs from creating the same missing path, because `Repository.write` published
+  every operation with a rename: both passed the `missing` check and the second rename replaced the
+  first file. `applyPlan` now publishes creates through `Repository.create`, which links the staged
+  file into place and reports the destination taken instead of replacing it. Updates keep their
+  stale-content check and rename. `test/plan.test.ts` holds the invariant with a barrier that puts
+  concurrent applies in the race window deliberately; the tests were observed failing against the
+  rename-based publish.
 - Previous statistics/document/monorepo work was committed and pushed to `origin/main` as
   `e7a5bf50d9a4be72cd751fba4ec5bb91e58acb96`; the remote hash was read back successfully.
 - Root `action.yml` provides `check`, `stats`, and `check-and-stats`, checkout/scope selection,

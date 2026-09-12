@@ -154,8 +154,10 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
 - Initialization is idempotent: running it twice changes nothing the second time.
 - Every modifying command builds a plan, renders it, and applies exactly that plan. `--dry-run` uses
   the same plan and stops before writing.
-- Writes are complete-file writes via a temporary file and a rename, so an interrupted run cannot
-  leave a half-written file.
+- Writes are complete-file writes: the whole file is staged in a temporary file beside its
+  destination, so an interrupted run cannot leave a half-written file. An update is then renamed
+  into place; a new document is instead published with an operation that fails if the destination
+  already exists, so two Syngraphe runs creating the same file cannot overwrite each other.
 - Syngraphe never writes outside the Git root and never writes through a symlink.
 - An existing `.context/` that is not a Syngraphe context is never touched: the command aborts and
   explains the conflict.

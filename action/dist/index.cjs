@@ -19489,6 +19489,9 @@ var import_node_path = __toESM(require("node:path"), 1);
 function isNotFound(error2) {
   return error2?.code === "ENOENT";
 }
+function isAlreadyExists(error2) {
+  return error2?.code === "EEXIST";
+}
 async function pathKind(absolutePath) {
   try {
     const stats = await (0, import_promises.lstat)(absolutePath);
@@ -19522,16 +19525,42 @@ async function resolveRealPath(absolutePath) {
     return null;
   }
 }
-async function writeTextFileAtomic(absolutePath, contents) {
-  const directory = import_node_path.default.dirname(absolutePath);
+async function stageTextFile(directory, contents) {
   await ensureDirectory(directory);
   const temporary = import_node_path.default.join(directory, `.syngraphe-${(0, import_node_crypto.randomBytes)(6).toString("hex")}.tmp`);
   try {
     await (0, import_promises.writeFile)(temporary, contents, { encoding: "utf8", mode: 420 });
+  } catch (error2) {
+    await (0, import_promises.unlink)(temporary).catch(() => void 0);
+    throw error2;
+  }
+  return temporary;
+}
+async function writeTextFileAtomic(absolutePath, contents) {
+  const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
+  try {
     await (0, import_promises.rename)(temporary, absolutePath);
   } catch (error2) {
     await (0, import_promises.unlink)(temporary).catch(() => void 0);
     throw error2;
+  }
+}
+async function createTextFileExclusive(absolutePath, contents) {
+  const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
+  try {
+    await (0, import_promises.link)(temporary, absolutePath);
+    return true;
+  } catch (error2) {
+    if (isAlreadyExists(error2)) return false;
+    try {
+      await (0, import_promises.writeFile)(absolutePath, contents, { encoding: "utf8", mode: 420, flag: "wx" });
+      return true;
+    } catch (fallbackError) {
+      if (isAlreadyExists(fallbackError)) return false;
+      throw fallbackError;
+    }
+  } finally {
+    await (0, import_promises.unlink)(temporary).catch(() => void 0);
   }
 }
 async function fileSize(absolutePath) {
@@ -19684,15 +19713,29 @@ var Repository = class _Repository {
     return entries === null ? null : entries.sort();
   }
   /**
-   * Write a complete file, after checking that neither the target nor any of
-   * its parent directories is a symlink. Syngraphe refuses to write through
-   * links rather than trying to decide which ones are safe.
+   * Write a complete file, replacing an existing one, after checking that
+   * neither the target nor any of its parent directories is a symlink.
+   * Syngraphe refuses to write through links rather than trying to decide which
+   * ones are safe.
    */
   async write(relativePath, contents) {
     const absolute = this.resolve(relativePath);
     await this.assertWritablePath(relativePath);
     await ensureDirectory(import_node_path2.default.dirname(absolute));
     await writeTextFileAtomic(absolute, contents);
+  }
+  /**
+   * Create a complete file that must not exist yet, under the same path-safety
+   * rules as `write`.
+   *
+   * Returns false instead of replacing anything when the destination is already
+   * taken. Exclusivity comes from the publishing operation itself, so a caller
+   * that first asked `kind()` is still safe if the answer went stale.
+   */
+  async create(relativePath, contents) {
+    const absolute = this.resolve(relativePath);
+    await this.assertWritablePath(relativePath);
+    return createTextFileExclusive(absolute, contents);
   }
   async makeDirectory(relativePath) {
     const absolute = this.resolve(relativePath);

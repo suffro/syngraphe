@@ -153,9 +153,13 @@ deterministic instead of dependent on when they run.
 
 All writing goes through one module. Commands never call `node:fs`.
 
-- Writes are complete-file writes into a temporary file in the destination directory, followed by a
-  rename — so an interrupted run cannot leave a half-written file, and the rename stays on one
-  filesystem and is therefore atomic.
+- Writes are complete-file writes: the file is written in full into a temporary file in the
+  destination directory and then published from there, so an interrupted run cannot leave a
+  half-written file and publication stays on one filesystem.
+- Publication distinguishes the two intents. An update is renamed over its destination, replacing
+  content the plan already compared. A create is linked into place instead: linking fails when the
+  destination exists, so checking that a path is free and claiming it are one operation and two
+  concurrent creates cannot both win.
 - `Repository.resolve` rejects absolute paths and anything that escapes the selected scope. References may reach shared context inside the Git root.
 - Before writing, every path segment from the root down is checked: a symlink anywhere along the way
   is refused rather than followed.
