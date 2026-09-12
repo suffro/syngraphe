@@ -133,12 +133,14 @@ export async function writeTextFileAtomic(absolutePath: string, contents: string
 export async function createTextFileExclusive(
   absolutePath: string,
   contents: string,
+  // Replaceable only so tests can reach the fallback on hosts where links work.
+  linkFile: (existingPath: string, newPath: string) => Promise<void> = link,
 ): Promise<boolean> {
   const temporary = await stageTextFile(path.dirname(absolutePath), contents);
   try {
     // link() never follows a symlink at the destination: an existing link is
     // itself an EEXIST, so this cannot write through one.
-    await link(temporary, absolutePath);
+    await linkFile(temporary, absolutePath);
     return true;
   } catch (error) {
     if (isAlreadyExists(error)) return false;

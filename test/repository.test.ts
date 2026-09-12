@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { after, describe, it } from "node:test";
+import { createTextFileExclusive } from "../src/core/fs.ts";
 import { Repository } from "../src/core/repository.ts";
 import { TempRepo } from "./helpers/repo.ts";
 
@@ -98,5 +99,21 @@ describe("Repository exclusive creation", () => {
     const published = await repo.read("contested.md");
     assert.equal(published, writers[results.indexOf(true)]);
     assert.deepEqual([...(await repo.snapshot()).keys()], ["contested.md"]);
+  });
+
+  it("still gives exactly one winner on filesystems without hard links", async () => {
+    const { repo } = await repository();
+    const noHardLinks = async (): Promise<void> => {
+      throw Object.assign(new Error("hard links unsupported"), { code: "EPERM" });
+    };
+    const writers = Array.from({ length: 8 }, (_, index) => `writer ${index}\n`);
+
+    const results = await Promise.all(
+      writers.map((body) => createTextFileExclusive(repo.path("fallback.md"), body, noHardLinks)),
+    );
+
+    assert.equal(results.filter(Boolean).length, 1);
+    assert.equal(await repo.read("fallback.md"), writers[results.indexOf(true)]);
+    assert.deepEqual([...(await repo.snapshot()).keys()], ["fallback.md"]);
   });
 });

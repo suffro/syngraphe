@@ -19545,10 +19545,10 @@ async function writeTextFileAtomic(absolutePath, contents) {
     throw error2;
   }
 }
-async function createTextFileExclusive(absolutePath, contents) {
+async function createTextFileExclusive(absolutePath, contents, linkFile = import_promises.link) {
   const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
   try {
-    await (0, import_promises.link)(temporary, absolutePath);
+    await linkFile(temporary, absolutePath);
     return true;
   } catch (error2) {
     if (isAlreadyExists(error2)) return false;
