@@ -94,6 +94,9 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Next
 
+- Execute the approved write surface hardening plan in `state/write-surface-hardening.md`: patch
+  TOCTOU race, exact UTF-8 for patched files, `ReadOnlyRepository` and a shared dry-run invariant
+  test, plus the minor `status`, `LINK001`, fallback-wording and `.context/` identity fixes.
 - Complete Marketplace publication in the GitHub release editor for `action-v1.0.0`, then verify
   the public listing. Release URL: https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0
 

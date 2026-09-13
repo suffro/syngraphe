@@ -69,7 +69,7 @@ action that spends the user's money.
 
 ## Repository continuity
 
-- **Durable project knowledge belongs in tracked repository documentation.** Agent-local memory is a
+- **Durable and non durable project knowledge belongs in tracked repository folder `.context/`.** Agent-local memory is a
   convenience, not the sole source for information another contributor needs to continue the work.
 - Update relevant documentation when behaviour, architecture, commands, public interfaces or user
   expectations change.
