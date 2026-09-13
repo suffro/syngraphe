@@ -669,6 +669,30 @@
   font-weight: 650;
 }
 
+/*
+ * The video preview.
+ *
+ * The frame reserves its 16:9 box before the player loads, so the lazy iframe cannot shift the
+ * sections below it. It is capped short of the full container: at 1104px wide a short clip would
+ * fill the whole viewport height on a laptop.
+ */
+.syg-video {
+  max-width: 880px;
+  margin-top: 38px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+  background: var(--vp-c-bg-alt);
+  overflow: hidden;
+}
+
+.syg-video iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
 .syg-cta {
   text-align: center;
   padding: 76px 0 88px;

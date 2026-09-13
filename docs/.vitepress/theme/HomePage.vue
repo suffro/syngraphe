@@ -111,6 +111,7 @@ const capabilities = [
           </div>
           <div class="syg-divider"></div>
           <div class="syg-sections-hooks">
+            <a href="#preview"><code>Preview</code></a>
             <a href="#pillars"><code>The concept</code></a>
             <a href="#how-it-works"><code>How it works</code></a>
             <a href="#the-layout"><code>The .context/</code></a>
@@ -147,6 +148,30 @@ const capabilities = [
             have. Remove the block and the file is byte for byte what it was.
           </figcaption>
         </figure>
+      </div>
+    </section>
+
+    <!-- ── Preview ──────────────────────────────────────────── -->
+    <section class="syg-section" id="preview">
+      <div class="syg-container">
+        <span class="syg-eyebrow">Preview</span>
+
+        <!--
+          Served from youtube-nocookie.com, YouTube's privacy-enhanced mode, so merely opening the
+          home page sets no YouTube cookies. No `autoplay`: the video starts only when the reader
+          presses play. `loading="lazy"` keeps the player out of the initial page load, and `rel=0`
+          limits end-of-video suggestions to this channel.
+        -->
+        <div class="syg-video">
+          <iframe
+            src="https://www.youtube-nocookie.com/embed/jUQC8HhH4B0?rel=0"
+            title="Syngraphe video preview"
+            loading="lazy"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin"
+            allowfullscreen
+          ></iframe>
+        </div>
       </div>
     </section>
 
