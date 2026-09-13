@@ -18,6 +18,8 @@ syngraphe init --scope packages/api --dry-run
 syngraphe init --scope packages/api
 syngraphe init --scope packages/web
 
+syngraphe truth new domain-model --scope packages/api
+syngraphe truth list --scope packages/api
 syngraphe decision new database_choice --scope packages/api
 syngraphe check --scope packages/api
 syngraphe stats --scope packages/api

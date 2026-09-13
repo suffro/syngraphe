@@ -1,10 +1,99 @@
 ---
 title: JSON output
-description: Versioned JSON for checks, statistics and monorepo reports.
+description: Independently versioned JSON for dry-run plans, checks, statistics and monorepo reports.
 order: 5
 ---
 
 # JSON output
+
+Each public JSON format has its own version. Plan JSON, check JSON, statistics JSON, and the
+monorepo envelope do not share a version merely because their current version numbers are all `1`.
+
+## Dry-run plan JSON
+
+Every current mutating command can expose the ordinary dry-run plan as stable JSON:
+
+```bash
+syngraphe init --dry-run --json
+syngraphe truth new domain-model --dry-run --json
+syngraphe decision new use-postgres --dry-run --json
+syngraphe state new migration --dry-run --json
+syngraphe history new migration-outcome --dry-run --json
+syngraphe state archive completed --dry-run --json
+```
+
+`--json` requires an explicit `--dry-run`; it never silently changes a real run into a dry run.
+Without `--dry-run`, the command exits `2`, writes nothing, emits no partial JSON, and explains the
+usage error on standard error. List commands do not have JSON output.
+
+```json
+{
+  "version": 1,
+  "ok": true,
+  "scope": ".",
+  "operations": [
+    {
+      "type": "create",
+      "path": ".context/truth/domain-model.md"
+    }
+  ],
+  "unchanged": [],
+  "conflicts": []
+}
+```
+
+Standard output contains only this payload and the final newline. The same planner builds human and
+JSON dry runs; only rendering differs, and neither path calls `applyPlan`.
+
+### Top level
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `version` | integer | Plan JSON shape version, currently `1` (`PLAN_JSON_VERSION`). |
+| `ok` | boolean | `true` exactly when the plan has no conflicts and the dry run can succeed. |
+| `scope` | string | Selected directory relative to Git root; `.` at repository root. |
+| `operations` | array | Planned creates and patches, preserving internal plan order. |
+| `unchanged` | array | Paths deliberately left alone and their reasons, preserving plan order. |
+| `conflicts` | array | Conditions that block apply, preserving plan order. |
+
+Operation paths are relative to the selected Syngraphe scope. Thus a nested scope reports
+`"scope": "packages/api"` while an operation inside it remains
+`"path": ".context/truth/domain-model.md"`.
+
+### Operations, unchanged entries, and conflicts
+
+A create contains `type: "create"` and `path`; it may contain a human summary. A patch contains
+`type: "patch"`, `path`, and a human summary. Consumers should match `type`, not summary text.
+
+```json
+{
+  "type": "patch",
+  "path": "AGENTS.md",
+  "summary": "Syngraphe repository-context bootstrap"
+}
+```
+
+An unchanged entry contains `path` and `reason`. A conflict always contains `message` and may contain
+`path` and `details`. Optional fields are omitted rather than emitted as `null`; a repository-level
+conflict can therefore be only `{ "message": "..." }`.
+
+Plan JSON is a deliberate projection, not serialized internal state. It never includes `contents`,
+`before`, `after`, complete file bodies, or user-authored repository text. The internal plan retains
+those values so applying that same plan can enforce stale-content and no-overwrite checks.
+
+### Stability and exit behavior
+
+- `PLAN_JSON_VERSION` is independent from check and statistics versions. Version 1 is stable.
+- Adding optional fields is additive. Removing or retyping an existing field requires a plan JSON
+  version bump.
+- Operation `type` values are the machine contract. Summaries, conflict messages, details, and
+  reasons remain human-readable and may be reworded.
+- A built plan with conflicts is still emitted with `ok: false` and exits `1`; no human plan renderer
+  is mixed into standard output.
+- Usage or operational failures that prevent a plan from being built preserve their existing
+  standard-error and exit-code behavior instead of inventing a JSON payload.
+
+## Check JSON
 
 ```bash
 syngraphe check --json
@@ -38,7 +127,7 @@ syngraphe check --json
 The payload is printed to standard output and nothing else is, so it can be piped directly into
 `jq` without filtering.
 
-## Top level
+### Top level
 
 | Field      | Type    | Meaning                                                                 |
 | ---------- | ------- | ----------------------------------------------------------------------- |
@@ -50,7 +139,7 @@ The payload is printed to standard output and nothing else is, so it can be pipe
 default run and `ok: false` under `--strict`, because `ok` describes the outcome of the run, not an
 abstract verdict on the repository. Read `severity` if you want the verdict independent of flags.
 
-## A finding
+### A finding
 
 | Field      | Type   | Always present | Meaning                                                        |
 | ---------- | ------ | -------------- | -------------------------------------------------------------- |
@@ -65,7 +154,7 @@ abstract verdict on the repository. Read `severity` if you want the verdict inde
 Optional fields are **omitted**, never `null`. Key order is stable in the emitted JSON, though no
 consumer should depend on it.
 
-## Stability
+### Stability
 
 - `version` changes only when the payload shape changes. New optional fields are additive and do not
   bump it; a removed or re-typed field would.
@@ -74,7 +163,7 @@ consumer should depend on it.
 - `message` and `details` are human-readable text and may be reworded. Match on `code`, never on
   message text.
 
-## Recipes
+### Recipes
 
 ```bash
 # Errors only.
@@ -96,7 +185,7 @@ syngraphe check --json | jq -r '
 Because the codes are stable, excluding a check that is not yet actionable in your repository is a
 filter on one code rather than a reason to stop running the command.
 
-## Exit code and payload together
+### Exit code and payload together
 
 The payload never replaces the exit code; it explains it.
 
@@ -107,7 +196,7 @@ The payload never replaces the exit code; it explains it.
 | `3`  | `ok: false`, including a `MANIFEST003` finding.                    |
 | `2`  | No payload: the command never ran. The message goes to stderr.     |
 
-## Programmatic alternative
+### Programmatic alternative
 
 If you are already in Node, skip the parsing:
 

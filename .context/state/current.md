@@ -3,6 +3,7 @@
 ## Current focus
 
 Syngraphe implements initialization, integrity checks, statistics and document lifecycle helpers,
+including first-class truth documents and stable JSON projections of every mutating dry-run plan,
 with explicit package scopes for nested/monorepo context. A bundled GitHub Action now adds
 runner annotations, summaries and versioned reports on top of the same core. Schema v1, the root managed block and
 single-scope check JSON remain unchanged. The Action is released as `action-v1.0.0`, with `action-v1` for compatible updates.
@@ -34,17 +35,22 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 - `stats` reports bytes, words, estimated tokens, active/history totals, large Markdown documents
   and exact duplicates; its token budget is advisory and JSON is independently versioned.
-- `decision`, `state`, `history` support `new` and `list`. `state archive` preserves current state in
-  a new history file then resets the state template, with dry-run and preflight safety checks.
+- `truth`, `decision`, `state`, and `history` support `new` and `list`. Generic truth documents are
+  intentionally only a top-level heading. `state archive` preserves current state in a new history
+  file then resets the state template, with dry-run and preflight safety checks.
+- `init`, all four document `new` commands, and `state archive` accept `--dry-run --json`. Plan JSON
+  v1 preserves plan ordering and scope-relative paths while omitting file contents and patch states;
+  `--json` without `--dry-run` is rejected before planning or writing.
 - `--scope` selects an existing directory relative to Git root. `--all` on read-only reports
   discovers tracked/unignored contexts. Nested agent bootstraps explain ancestor context and scope
   selection; default root behavior is preserved. See `decisions/0004-explicit-scopes-and-context-tools.md`.
-- Documentation now covers the document lifecycle, stats JSON and explicit monorepo discovery.
-- Latest local verification on macOS with Node 24: all 130 tests passed (15 Action tests), including
-  standalone bundle execution and report/annotation behavior. Typecheck, lint, CLI/Action builds,
-  documentation build, package dry-run inspection and repository `check --all` passed.
-  The bundle drift guard was observed rejecting an intentionally changed artifact, then passing
-  after restoration. Hosted CI run `34542006024` passed on Ubuntu, macOS and Windows at the release commit:
+- Documentation covers the four-category document lifecycle, independently versioned plan/check/stats
+  JSON, and explicit monorepo discovery.
+- Latest local verification on macOS with Node 26.4: all 151 tests passed (15 Action tests), including
+  truth creation/listing/concurrency and the plan JSON contract. Typecheck, lint, CLI/Action builds,
+  Action bundle synchronization, documentation build, clean-snapshot repository `check --all`, and
+  representative temporary-repository CLI exercises passed. Hosted CI run `34542006024` passed on
+  Ubuntu, macOS and Windows at the release commit:
   130 tests passed with no skips on each OS, plus standalone Action execution, bundle verification,
   typecheck, lint and build. The first run exposed Windows checkout CRLF conversion; repository
   text now uses LF via `.gitattributes`, also verified with `core.autocrlf=true` locally.

@@ -103,14 +103,14 @@ function createdContents(plan: Plan): string {
 describe("concurrent applies of the same create", () => {
   it("lets one writer win a document and never replaces it", async () => {
     const repo = await initialized();
-    const target = ".context/decisions/shared.md";
+    const target = ".context/truth/shared.md";
 
     // Every plan is built while the destination is still missing, so all three
     // pass the preflight the old implementation relied on.
     const participants: Participant[] = [];
     for (const label of ["First writer", "Second writer", "Third writer"]) {
       const repository = Repository.atRoot(repo.root);
-      const plan = await planDocument(repository, "decision", "shared", { title: label });
+      const plan = await planDocument(repository, "truth", "shared", { title: label });
       assert.equal(await repository.kind(target), "missing");
       participants.push({ label, repository, plan });
     }

@@ -45,6 +45,10 @@ finished?* If yes, it is truth. If it names a person, a sprint, or a branch, it 
 Truth changes — architectures do — but it changes deliberately, in a commit whose subject is the
 change itself.
 
+`syngraphe truth new <name>` creates an intentionally minimal document containing only its
+top-level heading; `truth list` includes the two core files and any other top-level regular
+Markdown documents. Syngraphe imposes no generic truth sections or semantic validation.
+
 ## State
 
 What is true right now. The most perishable content in the repository and the most useful when it is

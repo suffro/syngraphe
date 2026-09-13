@@ -8,11 +8,12 @@ order: 5
 
 ## What v0.1 does
 
-- `syngraphe init`, with `--dry-run`
+- `syngraphe init`, with human or JSON `--dry-run` plans
 - `syngraphe status`
 - `syngraphe check`, with `--json` and `--strict`
 - `syngraphe stats`, with `--json` and an advisory `--budget`
-- `decision`, `state`, `history`: `new` and `list`, plus `state archive`
+- `truth`, `decision`, `state`, `history`: `new` and `list`, plus `state archive`; every mutation
+  supports content-free plan JSON with `--dry-run --json`
 - nested contexts selected by `--scope`, and `--all` for monorepo reports
 - the `.context/` schema v1 and its templates
 - managed blocks in `AGENTS.md` and `CLAUDE.md`

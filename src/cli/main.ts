@@ -51,9 +51,10 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
     .command("init")
     .description("Create the repository context and the agent bootstrap files.")
     .option("--dry-run", "Show the plan without modifying any file.", false)
-    .action(async (commandOptions: { dryRun: boolean }) => {
+    .option("--json", "Emit the dry-run plan as versioned JSON.", false)
+    .action(async (commandOptions: { dryRun: boolean; json: boolean }) => {
       const repository = await selectRepository(cwd, program.opts().scope);
-      exitCode = await runInit({ repository, output, dryRun: commandOptions.dryRun });
+      exitCode = await runInit({ repository, output, ...commandOptions });
     });
 
   for (const name of ["status", "check", "stats"] as const) {
@@ -113,23 +114,29 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
     );
   }
 
-  for (const category of ["decision", "state", "history"] satisfies DocumentCategory[]) {
+  for (const category of ["truth", "decision", "state", "history"] satisfies DocumentCategory[]) {
     const group = program.command(category).description(`Create and list ${category} documents.`);
     group
       .command("new <name>")
       .description("Create a Markdown document without overwriting existing files.")
       .option("--title <title>", "Document heading (defaults to the filename with spaces).")
       .option("--dry-run", "Show the plan without writing.", false)
-      .action(async (name: string, commandOptions: { title?: string; dryRun: boolean }) => {
-        const repository = await selectRepository(cwd, program.opts().scope);
-        exitCode = await runDocument({
-          repository,
-          output,
-          category,
-          name,
-          ...commandOptions,
-        });
-      });
+      .option("--json", "Emit the dry-run plan as versioned JSON.", false)
+      .action(
+        async (
+          name: string,
+          commandOptions: { title?: string; dryRun: boolean; json: boolean },
+        ) => {
+          const repository = await selectRepository(cwd, program.opts().scope);
+          exitCode = await runDocument({
+            repository,
+            output,
+            category,
+            name,
+            ...commandOptions,
+          });
+        },
+      );
     group
       .command("list")
       .description("List Markdown documents in filename order, excluding README.md.")
@@ -143,7 +150,8 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
         .command("archive <name>")
         .description("Preserve current state in history and reset current.md to its template.")
         .option("--dry-run", "Show the plan without writing.", false)
-        .action(async (name: string, commandOptions: { dryRun: boolean }) => {
+        .option("--json", "Emit the dry-run plan as versioned JSON.", false)
+        .action(async (name: string, commandOptions: { dryRun: boolean; json: boolean }) => {
           const repository = await selectRepository(cwd, program.opts().scope);
           exitCode = await runDocument({
             repository,

@@ -114,11 +114,15 @@ from a state the first run invented).
 ## Plan, then apply — with `--dry-run` on the same path
 
 **Decision.** Inspection, planning, rendering and applying are separate stages, and `--dry-run`
-stops after rendering.
+stops after rendering. Human output and `--dry-run --json` are two projections of the same plan;
+the stable JSON projection exposes operations and conflicts without repository file contents.
 
 **Why.** A dry run implemented separately from the real run is a second implementation that will
 eventually disagree with the first — and it will disagree exactly when it matters. Sharing the
 planner makes the preview a guarantee rather than a description.
+
+`--json` requires an explicit `--dry-run`. It cannot accidentally turn a requested mutation into a
+different mode, and the dry-run branch never reaches apply regardless of renderer.
 
 **Rejected.** A `dryRun` boolean threaded through the writing code (the same code path, but with the
 writes conditionally skipped — one missed branch and the "dry" run writes).

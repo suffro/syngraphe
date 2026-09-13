@@ -42,21 +42,23 @@ See [Nested contexts and monorepos](/guides/monorepos) for examples and details.
 Creates the repository context and the agent bootstrap files.
 
 ```bash
-syngraphe init [--dry-run]
+syngraphe init [--dry-run] [--json]
 ```
 
-| Option      | Effect                                          |
-| ----------- | ----------------------------------------------- |
-| `--dry-run` | Render the plan and exit without writing a file. |
+| Option      | Effect                                                            |
+| ----------- | ----------------------------------------------------------------- |
+| `--dry-run` | Render the plan and exit without writing a file.                  |
+| `--json`    | Emit the plan as versioned JSON; requires `--dry-run`.            |
 
 ### What it does
 
 1. Inspects `.context/`, `AGENTS.md`, and every registered agent integration.
 2. Builds a single plan: files to create, files to patch, things left unchanged, conflicts found.
-3. Renders the plan.
+3. Renders the plan as human text, or as the public JSON projection with `--dry-run --json`.
 4. Applies exactly that plan — unless `--dry-run` was passed, or the plan reported conflicts.
 
 `--dry-run` is not a simulation: it runs the same planner and stops before the apply step.
+JSON changes only the rendering. It never includes created contents or patch before/after text.
 
 ### Output
 
@@ -95,6 +97,9 @@ No files were modified.
 A real run ends with `N files written.` instead of `No files were modified.`; a run with nothing to
 do ends with `Nothing to do. The repository context is already initialized.`
 
+For machine-readable dry runs, use `syngraphe init --dry-run --json`. Standard output then contains
+only the JSON payload and its final newline. See [plan JSON](/reference/json-output#dry-run-plan-json).
+
 ### Behaviour worth knowing
 
 - **Idempotent.** A second run on an initialized repository writes nothing.
@@ -109,7 +114,7 @@ do ends with `Nothing to do. The repository context is already initialized.`
 | ---- | -------------------------------------------------------------------- |
 | `0`  | The plan was applied, or `--dry-run` completed, or there was nothing to do. |
 | `1`  | Conflicts were reported, or `.context/` is unrelated or has an invalid manifest. |
-| `2`  | Not inside a Git repository, or invalid usage.                       |
+| `2`  | Not inside a Git repository, or invalid usage such as `--json` without `--dry-run`. |
 | `3`  | `.context/manifest.json` declares an unsupported schema version.     |
 
 ## `syngraphe status`
@@ -242,38 +247,47 @@ See [JSON output](/reference/json-output) for the versioned report.
 ## Document commands
 
 ```bash
-syngraphe decision new <name> [--title <title>] [--dry-run]
-syngraphe state new <name> [--title <title>] [--dry-run]
-syngraphe history new <name> [--title <title>] [--dry-run]
+syngraphe truth new <name> [--title <title>] [--dry-run] [--json]
+syngraphe decision new <name> [--title <title>] [--dry-run] [--json]
+syngraphe state new <name> [--title <title>] [--dry-run] [--json]
+syngraphe history new <name> [--title <title>] [--dry-run] [--json]
 
+syngraphe truth list
 syngraphe decision list
 syngraphe state list
 syngraphe history list
 
-syngraphe state archive <name> [--dry-run]
+syngraphe state archive <name> [--dry-run] [--json]
 ```
 
 All commands accept `--scope <path>` and require an initialized, supported context.
 
-`new` creates a file in `decisions/`, `state/` or `history/`. The name is a filename, with an optional
-`.md` suffix: letters, numbers, hyphens and underscores, starting with a letter or number, at most
-120 characters before the suffix. Paths, `README`, and Windows device names are refused.
-Existing names, including case-only collisions, are conflicts; there is no overwrite option.
+`new` creates a file in `truth/`, `decisions/`, `state/` or `history/`. The name is a filename, with
+an optional `.md` suffix: letters, numbers, hyphens and underscores, starting with a letter or
+number, at most 120 characters before the suffix. Paths, `README`, and Windows device names are
+refused. Existing names, including case-only collisions, are conflicts; there is no overwrite
+option. Thus `truth new architecture` conflicts with the core `truth/architecture.md` rather than
+special-casing or replacing it.
 
 The default heading uses the filename with hyphens and underscores replaced by spaces. `--title`
 sets a nonempty single-line heading. The generated body contains only headings:
 
 | Category | Headings |
 | --- | --- |
+| `truth` | Top-level title only |
 | `decision` | Context; Decision; Alternatives considered; Consequences |
 | `state` | Current focus; Recent relevant changes; Next; Blockers |
 | `history` | Summary; Outcome; Follow-up |
 
-No decision number, date or status is invented. The files stay ordinary Markdown. The index is
-left for the author to curate; new files do not automatically join its always-relevant reading list.
+The truth template is deliberately only `# <title>` with a final newline: truth may describe
+architecture, domain concepts, constraints, APIs, or something else, so Syngraphe does not impose
+generic sections. No decision number, date or status is invented. The files stay ordinary Markdown.
+The index is left for the author to curate; new files do not automatically join its always-relevant
+reading list.
 
 `list` prints top-level regular `.md` files in filename order, excluding `README.md` and symlinks.
-`state list` includes `current.md`. An empty list prints `No documents found.`
+`truth list` includes the core `architecture.md` and `conventions.md`; `state list` includes
+`current.md`. An empty list prints `No documents found.`
 
 `state archive` copies the full UTF-8 content of `state/current.md` to `history/<name>.md`, preserving
 line endings and a missing final newline, then resets current state to its original empty template.
@@ -286,6 +300,15 @@ process takes the name first, the command fails with exit code `1` instead of ov
 write is atomic, but the two-file archive is not a filesystem transaction: an IO failure after
 creation may leave the archive and original state both present, preserving the source. `--dry-run`
 renders this same plan without applying it.
+
+Add `--json` to a dry run for the independently versioned, content-free plan projection:
+
+```bash
+syngraphe truth new domain-model --title "Domain model" --dry-run --json
+syngraphe state archive completed --dry-run --json
+```
+
+`--json` without `--dry-run` is invalid usage and writes nothing. List commands do not accept JSON.
 
 Exit codes: `0` for success or dry-run, `1` for a conflict or unusable context, `2` for invalid names,
 titles, scopes or unsafe paths, `3` for an unsupported schema.
@@ -305,12 +328,16 @@ const { findings, errors, warnings } = await runChecks(await createCheckContext(
 `planInitialization(repository)` returns the same plan `init` renders, if you want to inspect it
 before deciding anything.
 
+`planToJson(plan, scope)` projects a plan into the same stable JSON contract as CLI dry runs;
+`PLAN_JSON_VERSION` versions that shape independently from check and statistics reports. The
+projection deliberately omits internal file contents and patch states.
+
 `(await Repository.open(cwd)).inScope("packages/api")` selects a package. The returned `root` is the
 scope's absolute directory, `gitRoot` is the containing Git root, and `scope` is its Git-relative
 POSIX path (`.` at the root). `Repository.open` and `Repository.atRoot` retain their default behavior.
 `discoverScopes(repository)` returns the same scope list used by `--all`.
 
 `inspectStats(repository, budget?)` returns structured statistics. `planDocument(repository,
-"decision", "use_postgres", { title: "Use PostgreSQL" })` returns a creation plan;
+"truth", "domain-model", { title: "Domain model" })` returns a creation plan;
 `planDocument(repository, "history", "phase_one", { archive: true })` returns an archival plan.
 `listDocuments(repository, "state")` returns the sorted paths without terminal formatting.

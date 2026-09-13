@@ -22,6 +22,14 @@ export { runStatus } from "./commands/status.ts";
 export { SyngrapheError } from "./core/errors.ts";
 export * from "./core/exit-codes.ts";
 export { applyPlan, emptyPlan, type FileOperation, type Plan } from "./core/plan.ts";
+export {
+  PLAN_JSON_VERSION,
+  type PlanJsonConflict,
+  type PlanJsonOperation,
+  type PlanJsonReport,
+  type PlanJsonUnchangedEntry,
+  planToJson,
+} from "./core/plan-json.ts";
 export { renderPlan } from "./core/render-plan.ts";
 export { Repository } from "./core/repository.ts";
 export { discoverScopes } from "./core/scopes.ts";

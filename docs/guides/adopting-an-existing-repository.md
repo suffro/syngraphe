@@ -17,6 +17,10 @@ Always:
 syngraphe init --dry-run
 ```
 
+For an integration or coding agent, `syngraphe init --dry-run --json` emits the same plan as stable,
+content-free JSON. It includes paths and operation summaries, not the contents of existing or
+planned files.
+
 The plan is the contract. Whatever it lists is exactly what the real run will do, because
 `--dry-run` and the real run share one planner. Reading it takes ten seconds and removes every
 surprise.

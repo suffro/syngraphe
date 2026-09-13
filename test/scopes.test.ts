@@ -56,6 +56,16 @@ describe("nested contexts and monorepos", () => {
       ".context/decisions/local.md",
     );
     assert.equal(
+      (await runCli(repo, ["truth", "new", "domain", "--scope", "packages/api"])).code,
+      0,
+    );
+    assert.equal(await repo.exists("packages/api/.context/truth/domain.md"), true);
+    assert.equal(await repo.exists(".context/truth/domain.md"), false);
+    assert.match(
+      (await runCli(repo, ["truth", "list", "--scope", "packages/api"])).stdout,
+      /\.context\/truth\/domain\.md/,
+    );
+    assert.equal(
       (await runCli(repo, ["state", "archive", "done", "--scope", "packages/api"])).code,
       0,
     );

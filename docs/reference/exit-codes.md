@@ -37,6 +37,7 @@ The command never really started.
 
 - Not inside a Git repository.
 - An unknown command, an unknown option, or a missing argument.
+- `--json` on a mutating command without the required explicit `--dry-run`.
 - A path that cannot be written safely — outside the repository root, or through a symlink.
 
 `--help` and `--version` are successful outcomes and exit `0`.

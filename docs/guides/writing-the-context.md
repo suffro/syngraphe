@@ -55,6 +55,17 @@ what "done" means here; the rules whose violation would fail review.
 Skip: indentation, quote style, import order — if a formatter enforces it, documenting it only
 creates a second source of truth that will disagree eventually.
 
+Other stable facts can live in their own top-level truth documents. For example:
+
+```bash
+syngraphe truth new domain-model --title "Domain model"
+syngraphe truth list
+```
+
+The generated file is intentionally only `# Domain model` plus a final newline. A truth document
+may be a domain model, security boundary, API contract, invariant set, or something else entirely;
+Syngraphe does not invent generic sections or interpret the prose.
+
 ## `state/current.md`
 
 The most perishable file, and the most useful when it is fresh. Four headings, kept short —
@@ -179,6 +190,8 @@ why the block exists.
 ## Helpers for the document lifecycle
 
 ```bash
+syngraphe truth new domain-model --title "Domain model"
+syngraphe truth list
 syngraphe decision new use_postgres --title "Use PostgreSQL"
 syngraphe decision list
 syngraphe state new migration_notes
@@ -187,9 +200,14 @@ syngraphe state archive phase_one --dry-run
 syngraphe stats
 ```
 
-`new` creates only headings, never rationale or conclusions. Add the actual knowledge yourself and
-curate the index when a new document belongs in its reading path. Every category supports `list`,
-and every creation supports `--dry-run`.
+`new` creates only headings, never rationale or conclusions. Truth gets only its top-level heading;
+the other categories keep their lifecycle-specific section headings. Add the actual knowledge
+yourself and curate the index when a new document belongs in its reading path. All four categories
+support `list`, and every creation supports `--dry-run`.
+
+For a content-free machine plan, add `--json` to any mutating dry run. For example,
+`syngraphe decision new use-postgres --dry-run --json` reports operation types and paths but never
+document contents. `--json` without `--dry-run` is rejected and writes nothing.
 
 `state archive phase_one` without `--dry-run` preserves the complete current state under history
 and resets current state to empty headings. Fill in the new focus before committing. The archive

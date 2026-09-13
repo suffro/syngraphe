@@ -18,7 +18,6 @@ import {
   type ExitCode,
 } from "../core/exit-codes.ts";
 import { applyPlan, emptyPlan, type Plan } from "../core/plan.ts";
-import { renderPlan } from "../core/render-plan.ts";
 import type { Repository } from "../core/repository.ts";
 import { inspectContext } from "../inspectors/context.ts";
 import {
@@ -27,11 +26,13 @@ import {
   CONTEXT_TEMPLATES,
   MANIFEST_PATH,
 } from "../templates/context.ts";
+import { validatePlanOutputOptions, writePlanOutput } from "./plan-output.ts";
 
 export interface InitOptions {
   repository: Repository;
   output: Output;
   dryRun: boolean;
+  json?: boolean;
 }
 
 /**
@@ -90,11 +91,13 @@ export async function planInitialization(repository: Repository): Promise<Plan> 
 
 export async function runInit(options: InitOptions): Promise<ExitCode> {
   const { repository, output, dryRun } = options;
+  const json = options.json ?? false;
+  validatePlanOutputOptions({ dryRun, json });
   const plan = await planInitialization(repository);
 
   const title = dryRun ? "Syngraphe initialization plan" : "Syngraphe initialization";
   const scope = repository.scope === "." ? "" : ` (scope: ${repository.scope})`;
-  output.write(renderPlan(plan, `${title}${scope}`));
+  writePlanOutput({ output, plan, scope: repository.scope, title: `${title}${scope}`, json });
 
   if (plan.conflicts.length > 0) {
     output.writeError("Initialization stopped: resolve the conflicts above and re-run.");
@@ -102,7 +105,7 @@ export async function runInit(options: InitOptions): Promise<ExitCode> {
   }
 
   if (dryRun) {
-    output.write("\nNo files were modified.");
+    if (!json) output.write("\nNo files were modified.");
     return EXIT_SUCCESS;
   }
 

@@ -66,6 +66,7 @@ documentation uses the full name.
 ```bash
 syngraphe init            # create the repository context and agent bootstrap
 syngraphe init --dry-run  # show exactly what would change, write nothing
+syngraphe init --dry-run --json  # same plan as stable, content-free JSON
 
 syngraphe status          # summarize the repository context
 
@@ -76,6 +77,9 @@ syngraphe check --strict  # treat warnings as failures
 syngraphe stats           # bytes, estimated tokens, large files and duplicates
 syngraphe stats --json --budget 8000
 
+syngraphe truth new domain-model --title "Domain model"
+syngraphe truth list
+syngraphe decision new use_postgres --dry-run --json
 syngraphe decision new use_postgres --title "Use PostgreSQL"
 syngraphe decision list
 syngraphe state new migration
@@ -88,9 +92,15 @@ syngraphe check --all                       # check discovered monorepo contexts
 syngraphe stats --all
 ```
 
-All three document categories support `new <name>` (with `--title` and `--dry-run`) and `list`.
-They require an initialized context and never overwrite an existing document. `state archive <name>`
-copies current state into history before resetting it; omitting `--dry-run` applies the plan.
+All four document categories — `truth`, `decision`, `state`, and `history` — support `new <name>`
+(with `--title` and `--dry-run`) and `list`. They require an initialized context and never overwrite
+an existing document. A new truth document is intentionally only a top-level heading; Syngraphe
+does not invent a semantic structure for repository facts. `state archive <name>` copies current
+state into history before resetting it; omitting `--dry-run` applies the plan.
+
+Every mutating command accepts `--json` only together with `--dry-run`. This emits the same plan as
+stable JSON and never writes. The public projection includes operation paths and summaries, but no
+created contents or patch before/after text.
 
 `stats` estimates Markdown tokens as `ceil(UTF-8 bytes / 4)` per file. It separates history from
 active content, flags documents over 2,000 estimated tokens and exact duplicates, and compares the
@@ -207,6 +217,11 @@ too.
 
 ### JSON output
 
+Checks, statistics, monorepo reports, and mutating dry-run plans have independently versioned JSON
+contracts. For example, `syngraphe decision new use-postgres --dry-run --json` emits a plan whose
+operations contain paths and types without exposing file contents. See the
+[JSON reference](docs/reference/json-output.md) for each payload.
+
 ```json
 {
   "version": 1,
@@ -264,11 +279,11 @@ untouched.
 
 Implemented:
 
-- `syngraphe init`, `syngraphe init --dry-run`
+- `syngraphe init`, with human or JSON dry-run plans
 - `syngraphe status`
 - `syngraphe check`, `--json`, `--strict`
 - `syngraphe stats`, `--json`, `--budget`
-- `decision`, `state`, `history`: `new`, `list`; `state archive`
+- `truth`, `decision`, `state`, `history`: `new`, `list`; `state archive`
 - explicit nested contexts with `--scope`; `--all` for read-only monorepo reports
 - the `.context/` schema v1 and its templates
 - managed blocks in `AGENTS.md` and `CLAUDE.md`

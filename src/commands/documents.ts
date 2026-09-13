@@ -7,7 +7,6 @@ import {
   type ExitCode,
 } from "../core/exit-codes.ts";
 import { applyPlan, emptyPlan, type Plan } from "../core/plan.ts";
-import { renderPlan } from "../core/render-plan.ts";
 import type { Repository } from "../core/repository.ts";
 import { requireContext } from "../inspectors/usable-context.ts";
 import { CONTEXT_TEMPLATES, CURRENT_STATE_PATH } from "../templates/context.ts";
@@ -16,6 +15,7 @@ import {
   type DocumentCategory,
   documentTemplate,
 } from "../templates/documents.ts";
+import { validatePlanOutputOptions, writePlanOutput } from "./plan-output.ts";
 
 function documentName(name: string): string {
   const stem = name.endsWith(".md") ? name.slice(0, -3) : name;
@@ -119,14 +119,24 @@ export async function runDocument(options: {
   title?: string;
   archive?: boolean;
   dryRun: boolean;
+  json?: boolean;
 }): Promise<ExitCode> {
+  const json = options.json ?? false;
+  validatePlanOutputOptions({ dryRun: options.dryRun, json });
   const plan = await planDocument(options.repository, options.category, options.name, options);
   const title = options.archive ? "Syngraphe state archive" : "Syngraphe new document";
   const scope = options.repository.scope === "." ? "" : ` (scope: ${options.repository.scope})`;
-  options.output.write(renderPlan(plan, `${title}${scope}`));
+  writePlanOutput({
+    output: options.output,
+    plan,
+    scope: options.repository.scope,
+    title: `${title}${scope}`,
+    json,
+  });
   if (plan.conflicts.length) return EXIT_INTEGRITY_FAILURE;
-  if (options.dryRun) options.output.write("No files were modified.");
-  else {
+  if (options.dryRun) {
+    if (!json) options.output.write("No files were modified.");
+  } else {
     await applyPlan(options.repository, plan);
     options.output.write(`${plan.operations.length} file(s) written.`);
   }

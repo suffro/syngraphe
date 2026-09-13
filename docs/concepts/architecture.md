@@ -65,6 +65,8 @@ Three consequences fall out of this, none of which needed extra code:
 
 - **`--dry-run` is honest.** It runs the same planner and returns before `applyPlan`. There is no
   second implementation that could disagree with the real one.
+- **Plan JSON is a projection, not serialization.** It preserves operation order and paths while
+  excluding created contents and patch `before`/`after` states from the public contract.
 - **Conflicts stop everything.** A plan carrying conflicts is never partially applied — a
   half-applied plan is harder to reason about than one that did not run.
 - **Stale plans fail loudly.** `patch` operations record the exact expected `before` content, and
@@ -191,10 +193,12 @@ has its own canonical body that explains shared ancestor context and explicit ch
 `discoverScopes` discovers contexts from tracked and unignored files. Read-only commands aggregate
 reports using a separate JSON envelope for `--all`; single-scope check JSON is unchanged.
 
-Document creation and current-state archival use the existing create/patch plan. Archive creates
-history before resetting current state, and all path and content preconditions are checked before
-the first write. Stats is a read-only traversal, with exact byte counts, a documented token
-heuristic and advisory size/duplication signals.
+Truth, decision, state and history document creation and current-state archival use the existing
+create/patch plan. Archive creates history before resetting current state, and all path and content
+preconditions are checked before the first write. The independently versioned plan JSON projection
+preserves operation order and scope-relative paths without exposing created contents or patch
+states. Stats is a read-only traversal, with exact byte counts, a documented token heuristic and
+advisory size/duplication signals.
 
 ## Testing
 

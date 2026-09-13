@@ -16,6 +16,7 @@ async function initialized() {
 
 describe("document commands", () => {
   for (const [category, directory] of [
+    ["truth", "truth"],
     ["decision", "decisions"],
     ["state", "state"],
     ["history", "history"],
@@ -31,7 +32,9 @@ describe("document commands", () => {
       const result = await runCli(repo, args);
       assert.equal(result.code, 0, result.stderr);
       const file = `.context/${directory}/my_note.md`;
-      assert.match(await repo.read(file), /^# My note\n/);
+      const contents = await repo.read(file);
+      assert.match(contents, /^# My note\n/);
+      if (category === "truth") assert.equal(contents, "# My note\n");
       const list = await runCli(repo, [category, "list"]);
       assert.equal(list.code, 0);
       assert.match(list.stdout, /my_note.md/);
@@ -42,6 +45,42 @@ describe("document commands", () => {
       assert.deepEqual(await repo.snapshot(), snapshot);
     });
   }
+
+  it("lists every top-level regular truth document in filename order", async () => {
+    const repo = await initialized();
+    assert.equal((await runCli(repo, ["truth", "new", "zeta"])).code, 0);
+    assert.equal((await runCli(repo, ["truth", "new", "alpha"])).code, 0);
+    assert.equal(await repo.read(".context/truth/zeta.md"), "# zeta\n");
+    await repo.write(".context/truth/notes.txt", "not Markdown\n");
+    await repo.write(".context/truth/README.md", "excluded\n");
+    await repo.makeDirectory(".context/truth/directory.md");
+    await repo.link("architecture.md", ".context/truth/link.md");
+
+    const result = await runCli(repo, ["truth", "list"]);
+
+    assert.equal(result.code, 0, result.stderr);
+    assert.equal(
+      result.stdout,
+      [
+        ".context/truth/alpha.md",
+        ".context/truth/architecture.md",
+        ".context/truth/conventions.md",
+        ".context/truth/zeta.md",
+        "",
+      ].join("\n"),
+    );
+  });
+
+  it("does not overwrite core truth documents or case-only collisions", async () => {
+    const repo = await initialized();
+    const architecture = await repo.read(".context/truth/architecture.md");
+    const before = await repo.snapshot();
+
+    assert.equal((await runCli(repo, ["truth", "new", "architecture"])).code, 1);
+    assert.equal((await runCli(repo, ["truth", "new", "ARCHITECTURE"])).code, 1);
+    assert.equal(await repo.read(".context/truth/architecture.md"), architecture);
+    assert.deepEqual(await repo.snapshot(), before);
+  });
 
   it("rejects unsafe and nonportable filenames and multiline titles without writes", async () => {
     const repo = await initialized();
@@ -57,7 +96,7 @@ describe("document commands", () => {
       ".",
       "a".repeat(121),
     ]) {
-      const result = await runCli(repo, ["decision", "new", name]);
+      const result = await runCli(repo, ["truth", "new", name]);
       assert.equal(result.code, 2, `${name}: ${result.stderr}`);
     }
     assert.equal((await runCli(repo, ["state", "new", "note", "--title", "line\nbreak"])).code, 2);

@@ -20,8 +20,8 @@ Agent integrations and checks are registries consumed by commands, never hardcod
 - `src/commands/` — `init`, `status`, `check`, `stats`, document lifecycle and scope reports. Composition roots: they gather inspections, consult
   the registries, render, and apply.
 - `src/core/` — `Repository` (path safety, repository-relative IO), `fs` (the only module that
-  writes), `git` (thin `execFile` wrapper), `plan` + `render-plan` (plan/apply), `text`, `markdown`,
-  `errors`, `exit-codes`.
+  writes), `git` (thin `execFile` wrapper), `plan` + `render-plan` + `plan-json` (plan/apply and its
+  human/content-free machine projections), `text`, `markdown`, `errors`, `exit-codes`.
 - `src/managed/` — the generic managed-block subsystem: `block.ts` is pure text, `file.ts` binds it
   to real files and produces plans.
 - `src/agents/` — the `AgentIntegration` contract, the registry, one adapter per agent, plus
@@ -57,9 +57,10 @@ Agent integrations and checks are registries consumed by commands, never hardcod
 
 ## Data flow
 
-`init` inspects, plans, renders, applies — always in that order. `--dry-run` runs the same planner
-and stops before `applyPlan`. `check` and `status` build one `CheckContext` snapshot and read from
-it, so a single run is internally consistent.
+Mutating commands inspect, build one plan, render it as human text or a stable content-free JSON
+projection, and optionally apply exactly that plan — always in that order. `--dry-run` stops before
+`applyPlan`; `--json` changes only rendering and requires that dry run. `check` and `status` build
+one `CheckContext` snapshot and read from it, so a single run is internally consistent.
 
 ## Scopes and document lifecycle
 
@@ -73,15 +74,21 @@ parent/sibling context inside the Git tree; freshness considers only commits aff
 accept `--all`, which has a separate versioned JSON envelope. Default single-check JSON is unchanged.
 Nested bootstrap bodies clarify ancestor context and `--scope`; root bootstrap bytes are unchanged.
 
-`commands/documents.ts` plans `new` for decision/state/history and `state archive`. Archive creates
-history before patching current state back to its existing template. All write paths and stale
-content are checked before any write; the two operations are not a filesystem transaction.
+`commands/documents.ts` plans `new` and `list` for truth/decision/state/history, plus `state archive`.
+Generic truth documents receive only a top-level heading; the other category templates retain their
+lifecycle-specific sections. Archive creates history before patching current state back to its
+existing template. All write paths and stale content are checked before any write; the two
+operations are not a filesystem transaction.
+
+`core/plan-json.ts` projects the internal plan deliberately: ordered operation paths and summaries,
+unchanged entries, and conflicts are public, while created contents and patch before/after states
+are not. `PLAN_JSON_VERSION` versions this shape independently from check, stats, and all-scope JSON.
 
 `applyPlan` publishes the two operation types differently. A `create` goes through
 `Repository.create`, which claims the destination exclusively and reports it taken rather than
 replacing it; the preflight `kind()` check stays, but it is what makes a stale plan fail before the
 first write, not what keeps creation exclusive. A `patch` still goes through `Repository.write`
-after its expected content matched. `init`, the three `<category> new` commands and `state archive`
+after its expected content matched. `init`, the four `<category> new` commands and `state archive`
 all inherit this from the shared plan/apply core.
 
 `inspectors/stats.ts` counts regular files and UTF-8 bytes, estimates Markdown tokens per file as
@@ -116,6 +123,7 @@ stay silent rather than guessing.
 - Writes are complete-file writes: the file is staged in full beside its destination, then published.
   Updates are published with a rename; creates are published with a link, which fails when the
   destination exists, so concurrent creates cannot overwrite each other.
-- Finding codes, exit codes, the `--json` shape and the context schema are stable contracts.
+- Finding codes, exit codes, each independently versioned JSON shape and the context schema are
+  stable contracts.
 - The repository must stay fully usable if Syngraphe disappears: Syngraphe implements the
   repository-context protocol, the protocol does not depend on Syngraphe.

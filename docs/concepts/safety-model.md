@@ -51,6 +51,14 @@ If any part of the plan is blocked, `init` renders the conflict and stops. No op
 A partially applied change is harder to reason about than one that did not happen, and there is no
 flag to force past this: fix the conflict, then run again.
 
+### Machine-readable dry runs expose no file bodies
+
+`--dry-run --json` renders the same plan as the human preview and stops before apply. Its public
+projection contains operation types, scope-relative paths, summaries, unchanged reasons and
+conflicts. It deliberately omits created contents and patch before/after text, so repository prose
+is not dumped into automation logs. `--json` without `--dry-run` is rejected as usage error before
+planning or writing.
+
 ### Writes are complete or absent
 
 Every write goes to a temporary file in the destination directory and is published from there. An
