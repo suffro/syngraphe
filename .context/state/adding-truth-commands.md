@@ -588,17 +588,25 @@ At minimum test:
 
 2. Actual `truth new`:
 
-   - creates `.context/truth/<name>.md`;
+   - creates the truth document at the path below;
    - content is exactly the minimal truth template;
    - heading uses the requested/default title.
 
+   ```text
+   .context/truth/<name>.md
+   ```
+
 3. `truth list`:
 
-   - includes `architecture.md`;
-   - includes `conventions.md`;
+   - includes the default truth documents listed below;
    - includes new truth documents;
    - deterministic filename ordering;
    - ignores non-Markdown/non-regular entries according to current list behavior.
+
+   ```text
+   architecture.md
+   conventions.md
+   ```
 
 4. Collision:
 
