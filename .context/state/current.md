@@ -11,6 +11,20 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Recent relevant changes
 
+- The quick-audit follow-up fixes `LINK001` case portability and Markdown links with parentheses.
+  Each component is checked against directory entries, and the destination scanner handles nested
+  and escaped parentheses, angle delimiters and titles. No finding code or JSON version changes.
+- Directory-swap protection is strengthened with per-operation parent identity checks across
+  staging, publication, fallback and cleanup, exclusive temporary opens, and one-level directory
+  creation. Missing-path/IO/disk-full link failures no longer trigger fallback writes. Tests first
+  reproduced the unsafe interleavings. This is mitigation, not elimination of hostile swaps within
+  an individual check/syscall interval; the public safety model now states that limit. See
+  `../decisions/0007-directory-swap-hardening.md`.
+- Local verification of this follow-up on macOS, Node 26.4: all 210 tests passed (28 suites),
+  plus typecheck, lint, CLI build, docs build, regenerated Action bundle with a passing drift check,
+  and repository `check --all`. Hosted CI for the follow-up remains to be confirmed after push;
+  Windows and Linux were not executed locally.
+
 - The write surface hardening plan is complete; see `history/write-surface-hardening.md`. Patches
   are verified in the publish step: `Repository.replace` renames the file aside, compares the moved
   bytes and only then links the new file into place, so a concurrent edit is kept and the apply
@@ -115,9 +129,7 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Next
 
-- Push the CI fixes and confirm hosted CI passes on Ubuntu, macOS and Windows.
-- Consider making `LINK001` case-exact. On macOS and Windows a reference in the wrong letter case
-  resolves locally and breaks on Linux, which is how the Ubuntu failure reached CI.
+- Confirm hosted CI for the quick-audit follow-up on Ubuntu, macOS and Windows.
 - Carry the user-visible changes into the next CLI release notes. The repository keeps no changelog
   file, so none was invented: `init` refuses a non-UTF-8 `AGENTS.md` or `CLAUDE.md` and `check`
   reports it; a patch fails instead of overwriting an edit made after planning; `status` no longer
@@ -125,6 +137,8 @@ These tags are independent of the npm CLI; package release metadata has not been
   out-of-repository symlinked references; a `.context/` without a declared protocol is `unrelated`
   unless its whole top level is the standard layout with at least one standard document. Decide
   whether to start a changelog.
+- Include the case-exact reference check, parenthesized Markdown destinations and directory-swap
+  mitigation (including its explicit trust limit) in the next CLI release notes.
 - Complete Marketplace publication in the GitHub release editor for `action-v1.0.0`, then verify
   the public listing. Release URL: https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0
 

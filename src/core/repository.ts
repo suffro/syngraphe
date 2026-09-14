@@ -11,7 +11,7 @@ import { SyngrapheError } from "./errors.ts";
 import { EXIT_USAGE } from "./exit-codes.ts";
 import {
   createTextFileExclusive,
-  ensureDirectory,
+  createWriteGuard,
   fileSize,
   listDirectory,
   type PathKind,
@@ -167,9 +167,9 @@ export class Repository implements ReadOnlyRepository {
    */
   async write(relativePath: string, contents: string): Promise<void> {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, path.dirname(absolute));
     await this.assertWritablePath(relativePath);
-    await ensureDirectory(path.dirname(absolute));
-    await writeTextFileAtomic(absolute, contents);
+    await writeTextFileAtomic(absolute, contents, guard);
   }
 
   /**
@@ -182,8 +182,9 @@ export class Repository implements ReadOnlyRepository {
    */
   async create(relativePath: string, contents: string): Promise<boolean> {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, path.dirname(absolute));
     await this.assertWritablePath(relativePath);
-    return createTextFileExclusive(absolute, contents);
+    return createTextFileExclusive(absolute, contents, undefined, guard);
   }
 
   /**
@@ -196,14 +197,23 @@ export class Repository implements ReadOnlyRepository {
    */
   async replace(relativePath: string, expected: string, contents: string): Promise<boolean> {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, path.dirname(absolute));
     await this.assertWritablePath(relativePath);
-    return replaceTextFileIfUnchanged(absolute, Buffer.from(expected, "utf8"), contents);
+    return replaceTextFileIfUnchanged(
+      absolute,
+      Buffer.from(expected, "utf8"),
+      contents,
+      undefined,
+      undefined,
+      guard,
+    );
   }
 
   async makeDirectory(relativePath: string): Promise<void> {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, absolute);
     await this.assertWritablePath(relativePath);
-    await ensureDirectory(absolute);
+    await guard.prepare();
   }
 
   async assertWritablePath(relativePath: string): Promise<void> {

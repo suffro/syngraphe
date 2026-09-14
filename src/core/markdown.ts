@@ -16,14 +16,14 @@ export interface MarkdownReference {
   kind: ReferenceKind;
 }
 
-const LINK_PATTERN = /\[[^\]\n]*\]\(([^)\n]+)\)/g;
+const LINK_START_PATTERN = /\[[^\]\n]*\]\(/g;
 const INLINE_CODE_PATTERN = /`([^`\n]+)`/g;
 
 /**
  * Extract references that point at repository-local paths.
  *
  * Inline-code references are only reported when they look like a path (they
- * end with `.md` or `/`), because inline code is also used for commands and
+ * end with `.md`), because inline code is also used for commands and
  * identifiers.
  */
 export function extractLocalReferences(markdown: string): MarkdownReference[] {
@@ -40,8 +40,12 @@ export function extractLocalReferences(markdown: string): MarkdownReference[] {
 
     const lineNumber = index + 1;
 
-    for (const match of line.matchAll(LINK_PATTERN)) {
-      const target = cleanLinkTarget(match[1] ?? "");
+    const linkStarts = new RegExp(LINK_START_PATTERN);
+    for (let match = linkStarts.exec(line); match; match = linkStarts.exec(line)) {
+      const destination = readLinkDestination(line, linkStarts.lastIndex);
+      if (destination === null) continue;
+      linkStarts.lastIndex = destination.end;
+      const target = stripAnchor(destination.target).replace(/\\([\\()[\]<>])/g, "$1");
       if (isLocalPath(target)) references.push({ target, line: lineNumber, kind: "link" });
     }
 
@@ -56,13 +60,53 @@ export function extractLocalReferences(markdown: string): MarkdownReference[] {
   return references;
 }
 
-function cleanLinkTarget(raw: string): string {
-  let target = raw.trim();
-  // Drop an optional link title: (path "Title")
-  const titleMatch = /^(\S+)\s+["'(].*$/.exec(target);
-  if (titleMatch?.[1]) target = titleMatch[1];
-  if (target.startsWith("<") && target.endsWith(">")) target = target.slice(1, -1);
-  return stripAnchor(target);
+/** Read one inline destination; a regex ending at the first ')' truncates filenames. */
+function readLinkDestination(line: string, offset: number): { target: string; end: number } | null {
+  let cursor = offset;
+  while (/\s/.test(line[cursor] ?? "")) cursor++;
+  const angle = line[cursor] === "<";
+  if (angle) cursor++;
+  const start = cursor;
+  let depth = 0;
+  for (; cursor < line.length; cursor++) {
+    const character = line[cursor];
+    if (character === "\\" && cursor + 1 < line.length) {
+      cursor++;
+      continue;
+    }
+    if (angle) {
+      if (character === ">") break;
+      if (character === "<") return null;
+    } else {
+      if (character === "(") depth++;
+      else if (character === ")") {
+        if (depth === 0) break;
+        depth--;
+      } else if (/\s/.test(character ?? "")) break;
+    }
+  }
+  if (depth !== 0 || cursor === line.length) return null;
+  const target = line.slice(start, cursor);
+  if (angle) cursor++;
+  const destinationEnd = cursor;
+  while (/\s/.test(line[cursor] ?? "")) cursor++;
+
+  // A title requires separating whitespace and a matching delimiter. Consume
+  // it separately so parentheses in the title cannot affect the destination.
+  if (cursor > destinationEnd && line[cursor] !== ")") {
+    const opener = line[cursor];
+    if (opener !== '"' && opener !== "'" && opener !== "(") return null;
+    const closer = opener === "(" ? ")" : opener;
+    cursor++;
+    while (cursor < line.length && line[cursor] !== closer) {
+      if (line[cursor] === "\\") cursor++;
+      cursor++;
+    }
+    if (cursor === line.length) return null;
+    cursor++;
+    while (/\s/.test(line[cursor] ?? "")) cursor++;
+  }
+  return line[cursor] === ")" ? { target, end: cursor + 1 } : null;
 }
 
 function stripAnchor(target: string): string {

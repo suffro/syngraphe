@@ -128,6 +128,40 @@ describe("syngraphe check", () => {
     assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
   });
 
+  it("requires exact case in every reference path component on every filesystem", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.link("architecture.md", ".context/truth/alias.md");
+    await repo.write(
+      INDEX_PATH,
+      "# Context\n\n[a](truth/ARCHITECTURE.md)\n[b](Truth/architecture.md)\n[c](truth/ALIAS.md)\n[d](truth/alias.md)\n`truth/ARCHITECTURE.md`\n",
+    );
+
+    const { report } = await check(repo);
+    assert.deepEqual(
+      report.findings
+        .filter((finding) => finding.code === "LINK001")
+        .map((finding) => finding.line),
+      [3, 4, 5, 7],
+    );
+  });
+
+  it("resolves Markdown destinations containing balanced or escaped parentheses", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(".context/truth/domain(v2).md", "# Domain\n");
+    await repo.write(
+      INDEX_PATH,
+      '# Context\n\n[a](truth/domain(v2).md)\n[b](truth/domain\\(v2\\).md "Title")\n[c](<truth/domain(v2).md>)\n[missing](truth/gone(v2).md)\n',
+    );
+
+    const { report } = await check(repo);
+    const findings = report.findings.filter((finding) => finding.code === "LINK001");
+    assert.equal(findings.length, 1, JSON.stringify(findings));
+    assert.equal(findings[0]?.line, 6);
+    assert.match(findings[0]?.message ?? "", /truth\/gone\(v2\)\.md/);
+  });
+
   it("still catches a broken reference written as inline code", async () => {
     const repo = await repoWith();
     assert.equal((await runCli(repo, ["init"])).code, 0);

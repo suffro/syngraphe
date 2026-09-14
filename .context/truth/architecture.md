@@ -74,6 +74,11 @@ parent/sibling context inside the Git tree; freshness considers only commits aff
 accept `--all`, which has a separate versioned JSON envelope. Default single-check JSON is unchanged.
 Nested bootstrap bodies clarify ancestor context and `--scope`; root bootstrap bytes are unchanged.
 
+`LINK001` checks the case of every referenced path component against directory entries, including
+symlink names, after verifying the resolved target stays in Git. Canonically equivalent Unicode
+spellings are accepted for macOS. Markdown inline destinations are scanned with balanced parentheses,
+escapes, angle delimiters and a separate optional title; malformed links are not truncated into paths.
+
 `commands/documents.ts` plans `new` and `list` for truth/decision/state/history, plus `state archive`.
 Generic truth documents receive only a top-level heading; the other category templates retain their
 lifecycle-specific sections. Archive creates history before patching current state back to its
@@ -94,6 +99,14 @@ publication safe. `Repository.write` remains a blind replacement, used only for 
 writes (the Action's report). `init`, the four `<category> new` commands and `state archive` all
 inherit this from the shared plan/apply core. See
 `../decisions/0006-patch-verification-in-the-publish-step.md`.
+
+`core/fs.ts` also owns `WriteGuard`: a per-operation snapshot of parent-directory identities, starting
+at Git root, rechecked through staging, publication, fallback and cleanup. Missing directories are
+created individually. Staging and fallback use exclusive opens and check parents again before writing
+through the handle. Changed parents stop cleanup too; moved originals are retained for recovery.
+Only known hard-link-unavailable errors allow a fallback. This mitigates directory swaps between
+phases, but cannot close a hostile check/syscall race using Node's portable path-based API. See
+`../decisions/0007-directory-swap-hardening.md`.
 
 Inspectors, planners, agent integrations and the check context receive `ReadOnlyRepository`, which
 has no writing method; only `applyPlan` and the `run*` command roots receive `Repository`, and
@@ -131,7 +144,8 @@ stay silent rather than guessing.
 - Syngraphe owns only the text between its markers; everything else is user-owned and preserved byte
   for byte, including line endings and a missing final newline.
 - Initialization is idempotent, and drift is reported rather than overwritten.
-- No writes outside the Git root, and never through a symlink.
+- Escaping paths and detected symlinks/directory replacements are rejected. Mutation assumes a
+  trusted directory tree: hostile swaps within a check/syscall interval are not excluded.
 - Writes are complete-file writes: the file is staged in full beside its destination, then published.
   Creates are published with a link, which fails when the destination exists, so concurrent creates
   cannot overwrite each other. Patches move the original aside and compare it before linking, so a

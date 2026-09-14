@@ -25,16 +25,16 @@ import {
   lstat,
   mkdir,
   mkdtemp,
+  open,
   readdir,
   readFile,
   realpath,
   rename,
   unlink,
-  writeFile,
 } from "node:fs/promises";
 import path from "node:path";
 import { SyngrapheError } from "./errors.ts";
-import { EXIT_INTEGRITY_FAILURE } from "./exit-codes.ts";
+import { EXIT_INTEGRITY_FAILURE, EXIT_USAGE } from "./exit-codes.ts";
 
 export type PathKind = "file" | "directory" | "symlink" | "other" | "missing";
 
@@ -103,6 +103,115 @@ export async function ensureDirectory(absolutePath: string): Promise<void> {
   await mkdir(absolutePath, { recursive: true });
 }
 
+export interface WriteGuard {
+  check(): Promise<void>;
+  prepare(): Promise<void>;
+}
+
+/**
+ * Remember directory identities from the trust root down. Recheck them at each
+ * IO boundary, including cleanup, and never resume after detecting a change.
+ * This detects swaps between phases; path-based Node APIs cannot exclude a
+ * hostile swap between an individual check and syscall (no portable openat).
+ */
+export async function createWriteGuard(root: string, directory: string): Promise<WriteGuard> {
+  const relative = path.relative(root, directory);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new SyngrapheError(
+      `Write directory escapes the repository root: ${directory}`,
+      EXIT_USAGE,
+    );
+  }
+  const directories = [root];
+  let current = root;
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    directories.push(current);
+  }
+  const identities = new Map<string, { dev: bigint; ino: bigint }>();
+  let failure: unknown;
+
+  async function inspect(directory: string): Promise<void> {
+    const stats = await lstat(directory, { bigint: true });
+    if (stats.isSymbolicLink()) {
+      throw new SyngrapheError(`Refusing to write through a symlink: ${directory}`, EXIT_USAGE);
+    }
+    const expected = identities.get(directory);
+    if (
+      !stats.isDirectory() ||
+      (expected && (stats.dev !== expected.dev || stats.ino !== expected.ino))
+    ) {
+      throw new SyngrapheError(`Write directory changed: ${directory}`, EXIT_USAGE);
+    }
+    identities.set(directory, { dev: stats.dev, ino: stats.ino });
+  }
+
+  for (const directory of directories) {
+    try {
+      await inspect(directory);
+    } catch (error) {
+      if (directory !== root && isNotFound(error)) break;
+      throw error;
+    }
+  }
+
+  const guard: WriteGuard = {
+    async check() {
+      if (failure !== undefined) throw failure;
+      try {
+        for (const directory of identities.keys()) await inspect(directory);
+      } catch (error) {
+        failure = isNotFound(error)
+          ? new SyngrapheError(`Write directory changed: ${directory}`, EXIT_USAGE)
+          : error;
+        throw failure;
+      }
+    },
+    async prepare() {
+      // Do not use recursive mkdir: validate each parent before creating its child.
+      for (const directory of directories) {
+        await guard.check();
+        if (identities.has(directory)) continue;
+        try {
+          await mkdir(directory);
+        } catch (error) {
+          if (!isAlreadyExists(error)) throw error;
+        }
+        await inspect(directory);
+      }
+      await guard.check();
+    },
+  };
+  return guard;
+}
+
+async function cleanupFile(file: string, guard: WriteGuard): Promise<void> {
+  try {
+    await guard.check();
+    await unlink(file);
+  } catch {
+    // A changed parent makes even unlink unsafe. Leave the temporary file where
+    // it went instead of following a replacement directory during cleanup.
+  }
+}
+
+async function writeExclusive(
+  file: string,
+  contents: string | Buffer,
+  guard: WriteGuard,
+): Promise<void> {
+  await guard.check();
+  const handle = await open(file, "wx", 0o644);
+  try {
+    // Validate after opening too, before any content is written. The descriptor
+    // keeps subsequent writes attached to the opened file if its name moves.
+    await guard.check();
+    await handle.writeFile(contents);
+  } finally {
+    await handle.close();
+  }
+}
+
 /** Fully resolved path, or null when it cannot be resolved (broken link, missing). */
 export async function resolveRealPath(absolutePath: string): Promise<string | null> {
   try {
@@ -123,13 +232,17 @@ function temporaryPath(directory: string, extension: "tmp" | "aside"): string {
  * Staging beside the destination keeps publication on one filesystem, which is
  * what every publish operation needs to be atomic.
  */
-async function stageTextFile(directory: string, contents: string): Promise<string> {
-  await ensureDirectory(directory);
+async function stageTextFile(
+  directory: string,
+  contents: string,
+  guard: WriteGuard,
+): Promise<string> {
+  await guard.prepare();
   const temporary = temporaryPath(directory, "tmp");
   try {
-    await writeFile(temporary, contents, { encoding: "utf8", mode: 0o644 });
+    await writeExclusive(temporary, contents, guard);
   } catch (error) {
-    await unlink(temporary).catch(() => undefined);
+    if (!isAlreadyExists(error)) await cleanupFile(temporary, guard);
     throw error;
   }
   return temporary;
@@ -149,7 +262,9 @@ async function publishExclusive(
   destination: string,
   contents: string | Buffer,
   linkFile: LinkFile,
+  guard: WriteGuard,
 ): Promise<boolean> {
+  await guard.check();
   try {
     // link() never follows a symlink at the destination: an existing link is
     // itself an EEXIST, so this cannot write through one.
@@ -157,12 +272,17 @@ async function publishExclusive(
     return true;
   } catch (error) {
     if (isAlreadyExists(error)) return false;
+    // Missing paths, IO errors and disk exhaustion are not evidence that links
+    // are unsupported. Never turn those failures into a new write attempt.
+    if (!["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS", "EXDEV"].includes(errorCode(error) ?? "")) {
+      throw error;
+    }
     // Hard links are unavailable on some filesystems Node runs on (FAT, parts
     // of exFAT, some network shares). O_EXCL still decides the winner there, so
     // exclusivity is kept; only the "complete file or nothing" window is lost,
     // and solely on those filesystems.
     try {
-      await writeFile(destination, contents, { mode: 0o644, flag: "wx" });
+      await writeExclusive(destination, contents, guard);
       return true;
     } catch (fallbackError) {
       if (isAlreadyExists(fallbackError)) return false;
@@ -178,13 +298,19 @@ async function publishExclusive(
  * concurrent writer. Plan operations never use it: they publish through
  * `createTextFileExclusive` and `replaceTextFileIfUnchanged`.
  */
-export async function writeTextFileAtomic(absolutePath: string, contents: string): Promise<void> {
-  const temporary = await stageTextFile(path.dirname(absolutePath), contents);
+export async function writeTextFileAtomic(
+  absolutePath: string,
+  contents: string,
+  guard?: WriteGuard,
+): Promise<void> {
+  guard ??= await createWriteGuard(path.parse(absolutePath).root, path.dirname(absolutePath));
+  const temporary = await stageTextFile(path.dirname(absolutePath), contents, guard);
   try {
+    await guard.check();
     await rename(temporary, absolutePath);
-  } catch (error) {
-    await unlink(temporary).catch(() => undefined);
-    throw error;
+    await guard.check();
+  } finally {
+    await cleanupFile(temporary, guard);
   }
 }
 
@@ -200,12 +326,16 @@ export async function createTextFileExclusive(
   contents: string,
   // Replaceable only so tests can reach the fallback on hosts where links work.
   linkFile: LinkFile = link,
+  guard?: WriteGuard,
 ): Promise<boolean> {
-  const temporary = await stageTextFile(path.dirname(absolutePath), contents);
+  guard ??= await createWriteGuard(path.parse(absolutePath).root, path.dirname(absolutePath));
+  const temporary = await stageTextFile(path.dirname(absolutePath), contents, guard);
   try {
-    return await publishExclusive(temporary, absolutePath, contents, linkFile);
+    const published = await publishExclusive(temporary, absolutePath, contents, linkFile, guard);
+    await guard.check();
+    return published;
   } finally {
-    await unlink(temporary).catch(() => undefined);
+    await cleanupFile(temporary, guard);
   }
 }
 
@@ -240,14 +370,17 @@ export async function replaceTextFileIfUnchanged(
   // Replaceable only so tests can reach the concurrent, fallback and busy paths.
   linkFile: LinkFile = link,
   renameFile: RenameFile = rename,
+  guard?: WriteGuard,
 ): Promise<boolean> {
   const directory = path.dirname(absolutePath);
-  const staged = await stageTextFile(directory, contents);
+  guard ??= await createWriteGuard(path.parse(absolutePath).root, directory);
+  const staged = await stageTextFile(directory, contents, guard);
   const aside = temporaryPath(directory, "aside");
   // True while the file that was at `absolutePath` exists only as `aside`.
   let asideHoldsOriginal = false;
   try {
     try {
+      await guard.check();
       await renameFile(absolutePath, aside);
     } catch (error) {
       if (isNotFound(error)) return false;
@@ -267,6 +400,11 @@ export async function replaceTextFileIfUnchanged(
 
     let current: Buffer;
     try {
+      await guard.check();
+      const kind = await pathKind(aside);
+      if (kind !== "file" && kind !== "missing") {
+        throw new Error("the moved path is not a regular file");
+      }
       current = await readFile(aside);
     } catch (error) {
       if (!isNotFound(error)) throw error;
@@ -278,19 +416,33 @@ export async function replaceTextFileIfUnchanged(
     }
     const unchanged = current.equals(expected);
     const published = unchanged
-      ? await publishExclusive(staged, absolutePath, contents, linkFile)
-      : await publishExclusive(aside, absolutePath, current, linkFile);
+      ? await publishExclusive(staged, absolutePath, contents, linkFile, guard)
+      : await publishExclusive(aside, absolutePath, current, linkFile, guard);
     if (!published) throw preservedAside(absolutePath, aside, "the path was recreated meanwhile");
+    await guard.check();
     asideHoldsOriginal = false;
     return unchanged;
   } catch (error) {
-    if (asideHoldsOriginal && !(error instanceof SyngrapheError)) {
-      throw preservedAside(absolutePath, aside, error instanceof Error ? error.message : error);
+    if (asideHoldsOriginal) {
+      const preserved = preservedAside(
+        absolutePath,
+        aside,
+        error instanceof Error ? error.message : error,
+      );
+      // Unsafe paths must keep their usage code (the Action never suppresses it).
+      if (error instanceof SyngrapheError && error.exitCode === EXIT_USAGE) {
+        throw new SyngrapheError(
+          preserved.message,
+          EXIT_USAGE,
+          `The original was moved to ${path.basename(aside)} in the directory originally at ${directory}. That directory changed; cleanup was stopped. Restore the directory before recovering the file.`,
+        );
+      }
+      if (!(error instanceof SyngrapheError)) throw preserved;
     }
     throw error;
   } finally {
-    await unlink(staged).catch(() => undefined);
-    if (!asideHoldsOriginal) await unlink(aside).catch(() => undefined);
+    await cleanupFile(staged, guard);
+    if (!asideHoldsOriginal) await cleanupFile(aside, guard);
   }
 }
 

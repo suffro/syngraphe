@@ -55,7 +55,20 @@ export async function referenceExists(
   const target = await root.realPath(relative);
   const realRoot = await root.realPath(".");
   if (target === null || realRoot === null) return false;
-  return !escapes(path.relative(realRoot, target));
+  if (escapes(path.relative(realRoot, target))) return false;
+
+  // realpath alone accepts wrong case on macOS/Windows. Check the spelling of
+  // every entry, including symlink names, so a passing reference is portable.
+  // macOS may expose decomposed Unicode names; that is not a case difference.
+  let parent = ".";
+  for (const segment of relative.split(path.sep).filter(Boolean)) {
+    const entries = await root.list(parent);
+    if (!entries?.some((entry) => entry.normalize("NFC") === segment.normalize("NFC"))) {
+      return false;
+    }
+    parent = path.join(parent, segment);
+  }
+  return true;
 }
 
 function escapes(relative: string): boolean {

@@ -83,7 +83,10 @@ all is reported for a repository that shows no sign of using Claude.
 | --------- | -------- | --------------------------------------------------------------------- |
 | `LINK001` | error    | A context document references a local path that does not exist. The finding carries the file and the line. |
 
-Markdown links resolve relative to the document and are checked whatever they point at. A reference
+Markdown links resolve relative to the document and are checked whatever they point at. Destinations
+may contain balanced parentheses, escaped parentheses or angle brackets, with an optional link title.
+Every path component must match the entry's letter case, even on a case-insensitive filesystem, so a
+reference accepted on macOS or Windows does not break on Linux because of its spelling. A reference
 through a symlink — the file itself or a directory on the way — resolves only when the link's target
 exists inside the Git repository; a broken link, or one leading outside, is reported. Inline code
 is prose, so only `.md` references are checked — `` `truth/architecture.md` `` — and they may

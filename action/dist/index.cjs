@@ -19522,8 +19522,83 @@ async function listDirectory(absolutePath) {
     throw error2;
   }
 }
-async function ensureDirectory(absolutePath) {
-  await (0, import_promises.mkdir)(absolutePath, { recursive: true });
+async function createWriteGuard(root, directory) {
+  const relative = import_node_path.default.relative(root, directory);
+  if (relative === ".." || relative.startsWith(`..${import_node_path.default.sep}`) || import_node_path.default.isAbsolute(relative)) {
+    throw new SyngrapheError(
+      `Write directory escapes the repository root: ${directory}`,
+      EXIT_USAGE
+    );
+  }
+  const directories = [root];
+  let current = root;
+  for (const segment of relative.split(import_node_path.default.sep).filter(Boolean)) {
+    current = import_node_path.default.join(current, segment);
+    directories.push(current);
+  }
+  const identities = /* @__PURE__ */ new Map();
+  let failure;
+  async function inspect(directory2) {
+    const stats = await (0, import_promises.lstat)(directory2, { bigint: true });
+    if (stats.isSymbolicLink()) {
+      throw new SyngrapheError(`Refusing to write through a symlink: ${directory2}`, EXIT_USAGE);
+    }
+    const expected = identities.get(directory2);
+    if (!stats.isDirectory() || expected && (stats.dev !== expected.dev || stats.ino !== expected.ino)) {
+      throw new SyngrapheError(`Write directory changed: ${directory2}`, EXIT_USAGE);
+    }
+    identities.set(directory2, { dev: stats.dev, ino: stats.ino });
+  }
+  for (const directory2 of directories) {
+    try {
+      await inspect(directory2);
+    } catch (error2) {
+      if (directory2 !== root && isNotFound(error2)) break;
+      throw error2;
+    }
+  }
+  const guard = {
+    async check() {
+      if (failure !== void 0) throw failure;
+      try {
+        for (const directory2 of identities.keys()) await inspect(directory2);
+      } catch (error2) {
+        failure = isNotFound(error2) ? new SyngrapheError(`Write directory changed: ${directory}`, EXIT_USAGE) : error2;
+        throw failure;
+      }
+    },
+    async prepare() {
+      for (const directory2 of directories) {
+        await guard.check();
+        if (identities.has(directory2)) continue;
+        try {
+          await (0, import_promises.mkdir)(directory2);
+        } catch (error2) {
+          if (!isAlreadyExists(error2)) throw error2;
+        }
+        await inspect(directory2);
+      }
+      await guard.check();
+    }
+  };
+  return guard;
+}
+async function cleanupFile(file, guard) {
+  try {
+    await guard.check();
+    await (0, import_promises.unlink)(file);
+  } catch {
+  }
+}
+async function writeExclusive(file, contents, guard) {
+  await guard.check();
+  const handle = await (0, import_promises.open)(file, "wx", 420);
+  try {
+    await guard.check();
+    await handle.writeFile(contents);
+  } finally {
+    await handle.close();
+  }
 }
 async function resolveRealPath(absolutePath) {
   try {
@@ -19535,25 +19610,29 @@ async function resolveRealPath(absolutePath) {
 function temporaryPath(directory, extension) {
   return import_node_path.default.join(directory, `.syngraphe-${(0, import_node_crypto.randomBytes)(6).toString("hex")}.${extension}`);
 }
-async function stageTextFile(directory, contents) {
-  await ensureDirectory(directory);
+async function stageTextFile(directory, contents, guard) {
+  await guard.prepare();
   const temporary = temporaryPath(directory, "tmp");
   try {
-    await (0, import_promises.writeFile)(temporary, contents, { encoding: "utf8", mode: 420 });
+    await writeExclusive(temporary, contents, guard);
   } catch (error2) {
-    await (0, import_promises.unlink)(temporary).catch(() => void 0);
+    if (!isAlreadyExists(error2)) await cleanupFile(temporary, guard);
     throw error2;
   }
   return temporary;
 }
-async function publishExclusive(source, destination, contents, linkFile) {
+async function publishExclusive(source, destination, contents, linkFile, guard) {
+  await guard.check();
   try {
     await linkFile(source, destination);
     return true;
   } catch (error2) {
     if (isAlreadyExists(error2)) return false;
+    if (!["EPERM", "ENOTSUP", "EOPNOTSUPP", "ENOSYS", "EXDEV"].includes(errorCode(error2) ?? "")) {
+      throw error2;
+    }
     try {
-      await (0, import_promises.writeFile)(destination, contents, { mode: 420, flag: "wx" });
+      await writeExclusive(destination, contents, guard);
       return true;
     } catch (fallbackError) {
       if (isAlreadyExists(fallbackError)) return false;
@@ -19561,30 +19640,37 @@ async function publishExclusive(source, destination, contents, linkFile) {
     }
   }
 }
-async function writeTextFileAtomic(absolutePath, contents) {
-  const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
+async function writeTextFileAtomic(absolutePath, contents, guard) {
+  guard ??= await createWriteGuard(import_node_path.default.parse(absolutePath).root, import_node_path.default.dirname(absolutePath));
+  const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents, guard);
   try {
+    await guard.check();
     await (0, import_promises.rename)(temporary, absolutePath);
-  } catch (error2) {
-    await (0, import_promises.unlink)(temporary).catch(() => void 0);
-    throw error2;
-  }
-}
-async function createTextFileExclusive(absolutePath, contents, linkFile = import_promises.link) {
-  const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
-  try {
-    return await publishExclusive(temporary, absolutePath, contents, linkFile);
+    await guard.check();
   } finally {
-    await (0, import_promises.unlink)(temporary).catch(() => void 0);
+    await cleanupFile(temporary, guard);
   }
 }
-async function replaceTextFileIfUnchanged(absolutePath, expected, contents, linkFile = import_promises.link, renameFile = import_promises.rename) {
+async function createTextFileExclusive(absolutePath, contents, linkFile = import_promises.link, guard) {
+  guard ??= await createWriteGuard(import_node_path.default.parse(absolutePath).root, import_node_path.default.dirname(absolutePath));
+  const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents, guard);
+  try {
+    const published = await publishExclusive(temporary, absolutePath, contents, linkFile, guard);
+    await guard.check();
+    return published;
+  } finally {
+    await cleanupFile(temporary, guard);
+  }
+}
+async function replaceTextFileIfUnchanged(absolutePath, expected, contents, linkFile = import_promises.link, renameFile = import_promises.rename, guard) {
   const directory = import_node_path.default.dirname(absolutePath);
-  const staged = await stageTextFile(directory, contents);
+  guard ??= await createWriteGuard(import_node_path.default.parse(absolutePath).root, directory);
+  const staged = await stageTextFile(directory, contents, guard);
   const aside = temporaryPath(directory, "aside");
   let asideHoldsOriginal = false;
   try {
     try {
+      await guard.check();
       await renameFile(absolutePath, aside);
     } catch (error2) {
       if (isNotFound(error2)) return false;
@@ -19601,6 +19687,11 @@ async function replaceTextFileIfUnchanged(absolutePath, expected, contents, link
     asideHoldsOriginal = true;
     let current;
     try {
+      await guard.check();
+      const kind = await pathKind(aside);
+      if (kind !== "file" && kind !== "missing") {
+        throw new Error("the moved path is not a regular file");
+      }
       current = await (0, import_promises.readFile)(aside);
     } catch (error2) {
       if (!isNotFound(error2)) throw error2;
@@ -19608,18 +19699,31 @@ async function replaceTextFileIfUnchanged(absolutePath, expected, contents, link
       return false;
     }
     const unchanged = current.equals(expected);
-    const published = unchanged ? await publishExclusive(staged, absolutePath, contents, linkFile) : await publishExclusive(aside, absolutePath, current, linkFile);
+    const published = unchanged ? await publishExclusive(staged, absolutePath, contents, linkFile, guard) : await publishExclusive(aside, absolutePath, current, linkFile, guard);
     if (!published) throw preservedAside(absolutePath, aside, "the path was recreated meanwhile");
+    await guard.check();
     asideHoldsOriginal = false;
     return unchanged;
   } catch (error2) {
-    if (asideHoldsOriginal && !(error2 instanceof SyngrapheError)) {
-      throw preservedAside(absolutePath, aside, error2 instanceof Error ? error2.message : error2);
+    if (asideHoldsOriginal) {
+      const preserved = preservedAside(
+        absolutePath,
+        aside,
+        error2 instanceof Error ? error2.message : error2
+      );
+      if (error2 instanceof SyngrapheError && error2.exitCode === EXIT_USAGE) {
+        throw new SyngrapheError(
+          preserved.message,
+          EXIT_USAGE,
+          `The original was moved to ${import_node_path.default.basename(aside)} in the directory originally at ${directory}. That directory changed; cleanup was stopped. Restore the directory before recovering the file.`
+        );
+      }
+      if (!(error2 instanceof SyngrapheError)) throw preserved;
     }
     throw error2;
   } finally {
-    await (0, import_promises.unlink)(staged).catch(() => void 0);
-    if (!asideHoldsOriginal) await (0, import_promises.unlink)(aside).catch(() => void 0);
+    await cleanupFile(staged, guard);
+    if (!asideHoldsOriginal) await cleanupFile(aside, guard);
   }
 }
 function preservedAside(absolutePath, aside, reason) {
@@ -19789,9 +19893,9 @@ var Repository = class _Repository {
    */
   async write(relativePath, contents) {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, import_node_path2.default.dirname(absolute));
     await this.assertWritablePath(relativePath);
-    await ensureDirectory(import_node_path2.default.dirname(absolute));
-    await writeTextFileAtomic(absolute, contents);
+    await writeTextFileAtomic(absolute, contents, guard);
   }
   /**
    * Create a complete file that must not exist yet, under the same path-safety
@@ -19803,8 +19907,9 @@ var Repository = class _Repository {
    */
   async create(relativePath, contents) {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, import_node_path2.default.dirname(absolute));
     await this.assertWritablePath(relativePath);
-    return createTextFileExclusive(absolute, contents);
+    return createTextFileExclusive(absolute, contents, void 0, guard);
   }
   /**
    * Replace a file only if it still contains exactly `expected`, under the same
@@ -19816,13 +19921,22 @@ var Repository = class _Repository {
    */
   async replace(relativePath, expected, contents) {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, import_node_path2.default.dirname(absolute));
     await this.assertWritablePath(relativePath);
-    return replaceTextFileIfUnchanged(absolute, Buffer.from(expected, "utf8"), contents);
+    return replaceTextFileIfUnchanged(
+      absolute,
+      Buffer.from(expected, "utf8"),
+      contents,
+      void 0,
+      void 0,
+      guard
+    );
   }
   async makeDirectory(relativePath) {
     const absolute = this.resolve(relativePath);
+    const guard = await createWriteGuard(this.gitRoot, absolute);
     await this.assertWritablePath(relativePath);
-    await ensureDirectory(absolute);
+    await guard.prepare();
   }
   async assertWritablePath(relativePath) {
     const base = _Repository.atRoot(this.gitRoot);
@@ -20838,7 +20952,7 @@ var manifestCheck = {
 var import_node_path4 = __toESM(require("node:path"), 1);
 
 // src/core/markdown.ts
-var LINK_PATTERN = /\[[^\]\n]*\]\(([^)\n]+)\)/g;
+var LINK_START_PATTERN = /\[[^\]\n]*\]\(/g;
 var INLINE_CODE_PATTERN = /`([^`\n]+)`/g;
 function extractLocalReferences(markdown) {
   const references = [];
@@ -20851,8 +20965,12 @@ function extractLocalReferences(markdown) {
     }
     if (inFence) continue;
     const lineNumber = index + 1;
-    for (const match of line.matchAll(LINK_PATTERN)) {
-      const target = cleanLinkTarget(match[1] ?? "");
+    const linkStarts = new RegExp(LINK_START_PATTERN);
+    for (let match = linkStarts.exec(line); match; match = linkStarts.exec(line)) {
+      const destination = readLinkDestination(line, linkStarts.lastIndex);
+      if (destination === null) continue;
+      linkStarts.lastIndex = destination.end;
+      const target = stripAnchor(destination.target).replace(/\\([\\()[\]<>])/g, "$1");
       if (isLocalPath(target)) references.push({ target, line: lineNumber, kind: "link" });
     }
     for (const match of line.matchAll(INLINE_CODE_PATTERN)) {
@@ -20864,12 +20982,49 @@ function extractLocalReferences(markdown) {
   }
   return references;
 }
-function cleanLinkTarget(raw) {
-  let target = raw.trim();
-  const titleMatch = /^(\S+)\s+["'(].*$/.exec(target);
-  if (titleMatch?.[1]) target = titleMatch[1];
-  if (target.startsWith("<") && target.endsWith(">")) target = target.slice(1, -1);
-  return stripAnchor(target);
+function readLinkDestination(line, offset) {
+  let cursor = offset;
+  while (/\s/.test(line[cursor] ?? "")) cursor++;
+  const angle = line[cursor] === "<";
+  if (angle) cursor++;
+  const start = cursor;
+  let depth = 0;
+  for (; cursor < line.length; cursor++) {
+    const character = line[cursor];
+    if (character === "\\" && cursor + 1 < line.length) {
+      cursor++;
+      continue;
+    }
+    if (angle) {
+      if (character === ">") break;
+      if (character === "<") return null;
+    } else {
+      if (character === "(") depth++;
+      else if (character === ")") {
+        if (depth === 0) break;
+        depth--;
+      } else if (/\s/.test(character ?? "")) break;
+    }
+  }
+  if (depth !== 0 || cursor === line.length) return null;
+  const target = line.slice(start, cursor);
+  if (angle) cursor++;
+  const destinationEnd = cursor;
+  while (/\s/.test(line[cursor] ?? "")) cursor++;
+  if (cursor > destinationEnd && line[cursor] !== ")") {
+    const opener = line[cursor];
+    if (opener !== '"' && opener !== "'" && opener !== "(") return null;
+    const closer = opener === "(" ? ")" : opener;
+    cursor++;
+    while (cursor < line.length && line[cursor] !== closer) {
+      if (line[cursor] === "\\") cursor++;
+      cursor++;
+    }
+    if (cursor === line.length) return null;
+    cursor++;
+    while (/\s/.test(line[cursor] ?? "")) cursor++;
+  }
+  return line[cursor] === ")" ? { target, end: cursor + 1 } : null;
 }
 function stripAnchor(target) {
   const hash = target.indexOf("#");
@@ -20919,7 +21074,16 @@ async function referenceExists(repository, candidate) {
   const target = await root.realPath(relative);
   const realRoot = await root.realPath(".");
   if (target === null || realRoot === null) return false;
-  return !escapes(import_node_path3.default.relative(realRoot, target));
+  if (escapes(import_node_path3.default.relative(realRoot, target))) return false;
+  let parent = ".";
+  for (const segment of relative.split(import_node_path3.default.sep).filter(Boolean)) {
+    const entries = await root.list(parent);
+    if (!entries?.some((entry) => entry.normalize("NFC") === segment.normalize("NFC"))) {
+      return false;
+    }
+    parent = import_node_path3.default.join(parent, segment);
+  }
+  return true;
 }
 function escapes(relative) {
   return relative === ".." || relative.startsWith(`..${import_node_path3.default.sep}`) || import_node_path3.default.isAbsolute(relative);

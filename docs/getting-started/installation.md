@@ -97,7 +97,9 @@ see [nested contexts and monorepos](/guides/monorepos).
 
 ## What it will and will not touch
 
-Syngraphe writes only inside the Git root, only complete files, and never through a symlink. On a
+Syngraphe rejects paths escaping the Git root and detected symlinks or changed parent directories.
+Its path checks assume a trusted workspace; see the [safety model](/concepts/safety-model) for the
+limit with hostile concurrent directory changes. It stages complete files before publication. On a
 first run in a repository, that means `.context/`, `AGENTS.md` and `CLAUDE.md` — and nothing else.
 See the [safety model](/concepts/safety-model) for the guarantees in full.
 

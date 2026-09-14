@@ -119,14 +119,14 @@ One writer is out of reach: a process that already has the file open and writes 
 handle after the comparison. Its write lands in the file that was moved aside. Node offers no way to
 exclude it.
 
-### Nothing is written outside the Git root
+### Paths must stay inside the selected scope
 
 Paths are resolved against the selected scope (the repository root by default), and anything that escapes it — `..`, an absolute
 path — is rejected before any filesystem call.
 
-### Nothing is written through a symlink
+### Symlinks and changed parents are rejected
 
-Before writing, every path segment from the root down is checked. A symlink anywhere along the way
+Before writing, every path segment from the root down is checked. A symlink found along the way
 is refused:
 
 ```text
@@ -136,6 +136,20 @@ CLAUDE.md is reached through a symbolic link. Resolve it manually and re-run.
 
 There is no override. Directory walks likewise use `lstat` and do not follow links, so a symlink
 inside `.context/` cannot lead a check out of the repository.
+
+Writes remember each parent directory's identity (device and inode), including the Git root, and
+recheck it during directory creation, staging, publication, fallback and cleanup. Newly needed
+directories are created one level at a time. Staged files use exclusive creation and are written
+through their open handle after another directory check. A detected replacement stops the operation,
+including cleanup: temporary files may remain in the moved directory, and an interrupted patch
+reports the original's temporary name for recovery. IO failures such as `ENOENT`, `EIO` and `ENOSPC`
+are propagated, not retried as a hard-link fallback.
+
+This is protection against detected concurrent changes, not a security sandbox. A hostile process
+with write access to the directory tree can still exchange a parent between a check and an individual
+filesystem call. Node's portable filesystem API does not offer directory-handle-relative mutation
+primitives to eliminate that interval. Run mutating commands only in a workspace whose directory
+tree is trusted; these checks do not isolate untrusted processes running with the same permissions.
 
 ### An unrecognised `.context/` is never touched
 

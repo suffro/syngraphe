@@ -173,7 +173,10 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
   content the plan expects, so an edit made after the plan was checked is kept and the run fails.
   On filesystems without hard links, publication stays exclusive, but a crash during it can leave
   the new file partial.
-- Syngraphe never writes outside the Git root and never writes through a symlink.
+- Syngraphe rejects escaping paths and symlinks, and rechecks parent-directory identities during
+  staging, publication and cleanup. A detected directory swap stops the operation. These checks
+  are not a sandbox against a hostile process changing directories during individual filesystem
+  calls; see the [safety model](docs/concepts/safety-model.md).
 - An existing `.context/` that is not a Syngraphe context is never touched: the command aborts and
   explains the conflict.
 

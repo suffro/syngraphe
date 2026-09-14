@@ -173,8 +173,11 @@ All writing goes through one module. Commands never call `node:fs`.
 - A patch starts from the file's exact bytes. A file that is not valid UTF-8 would have its
   undecodable bytes replaced, so it is reported as a conflict instead.
 - `Repository.resolve` rejects absolute paths and anything that escapes the selected scope. References may reach shared context inside the Git root.
-- Before writing, every path segment from the root down is checked: a symlink anywhere along the way
-  is refused rather than followed.
+- Writes capture parent-directory identities from Git root and recheck them during staging,
+  publication, fallback and cleanup. A detected symlink or replacement stops the operation.
+  Missing directories are created one level at a time; temporary files are created exclusively.
+  These path-based checks do not exclude hostile swaps inside an individual check/syscall interval;
+  see the [safety model](/concepts/safety-model).
 - Directory walks use `lstat` and do not follow symlinks.
 
 ## Git usage

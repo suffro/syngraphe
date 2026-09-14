@@ -3,7 +3,7 @@ import { link, readFile, rename, writeFile } from "node:fs/promises";
 import { after, describe, it } from "node:test";
 import { SyngrapheError } from "../src/core/errors.ts";
 import { EXIT_INTEGRITY_FAILURE } from "../src/core/exit-codes.ts";
-import { createTextFileExclusive, replaceTextFileIfUnchanged } from "../src/core/fs.ts";
+import { createTextFileExclusive, pathKind, replaceTextFileIfUnchanged } from "../src/core/fs.ts";
 import { Repository } from "../src/core/repository.ts";
 import { TempRepo } from "./helpers/repo.ts";
 
@@ -62,6 +62,45 @@ describe("Repository path safety", () => {
     const entries = [...(await repo.snapshot()).keys()];
     assert.deepEqual(entries, ["nested/deep/file.md"]);
   });
+
+  for (const operation of ["write", "create", "replace", "makeDirectory"] as const) {
+    it(`stops ${operation} when a checked parent is exchanged for an outside symlink`, async (t) => {
+      const { repo, repository: target } = await repository();
+      const { repo: outside } = await repository();
+      await repo.write("parent/notes.md", "before\n");
+      await outside.write("notes.md", "outside\n");
+      const before = await outside.snapshot();
+      const validate = target.assertWritablePath.bind(target);
+      t.mock.method(target, "assertWritablePath", async (relative: string) => {
+        await validate(relative);
+        await rename(repo.path("parent"), repo.path("original-parent"));
+        await repo.link(outside.root, "parent");
+      });
+
+      await assert.rejects(async () => {
+        if (operation === "replace") await target.replace("parent/notes.md", "before\n", "after\n");
+        else if (operation === "makeDirectory") await target.makeDirectory("parent/new/nested");
+        else await target[operation]("parent/new.md", "after\n");
+      }, /symlink|directory changed/i);
+
+      assert.deepEqual(await outside.snapshot(), before);
+      assert.equal(await pathKind(outside.path("new")), "missing");
+      assert.equal(await repo.read("original-parent/notes.md"), "before\n");
+    });
+  }
+
+  it("also rejects a checked parent replaced by another regular directory", async (t) => {
+    const { repo, repository: target } = await repository();
+    await repo.makeDirectory("parent");
+    const validate = target.assertWritablePath.bind(target);
+    t.mock.method(target, "assertWritablePath", async (relative: string) => {
+      await validate(relative);
+      await rename(repo.path("parent"), repo.path("original-parent"));
+      await repo.makeDirectory("parent");
+    });
+    await assert.rejects(() => target.create("parent/new.md", "after\n"), /directory changed/i);
+    assert.equal(await repo.exists("parent/new.md"), false);
+  });
 });
 
 describe("Repository exclusive creation", () => {
@@ -118,6 +157,43 @@ describe("Repository exclusive creation", () => {
     assert.equal(results.filter(Boolean).length, 1);
     assert.equal(await repo.read("fallback.md"), writers[results.indexOf(true)]);
     assert.deepEqual([...(await repo.snapshot()).keys()], ["fallback.md"]);
+  });
+
+  for (const code of ["ENOENT", "EIO", "ENOSPC"]) {
+    it(`does not turn a ${code} publication failure into a fallback write`, async () => {
+      const { repo } = await repository();
+      const failure = Object.assign(new Error("publication failed"), { code });
+      await assert.rejects(
+        () =>
+          createTextFileExclusive(repo.path("notes.md"), "after\n", async () => {
+            throw failure;
+          }),
+        (error) => error === failure,
+      );
+      assert.equal(await repo.exists("notes.md"), false);
+      assert.deepEqual([...(await repo.snapshot()).keys()], []);
+    });
+  }
+
+  it("does not follow an exchanged parent when a hard-link fallback or cleanup runs", async () => {
+    const { repo } = await repository();
+    const { repo: outside } = await repository();
+    await repo.makeDirectory("parent");
+    let decoy = "";
+    const swapped = async (staged: string): Promise<void> => {
+      // A staged basename in the outside directory detects unsafe cleanup.
+      decoy = staged.split(/[\\/]/).at(-1) ?? "";
+      await outside.write(decoy, "keep\n");
+      await rename(repo.path("parent"), repo.path("original-parent"));
+      await repo.link(outside.root, "parent");
+      throw Object.assign(new Error("links unavailable"), { code: "EPERM" });
+    };
+    await assert.rejects(
+      () => createTextFileExclusive(repo.path("parent/new.md"), "after\n", swapped),
+      /symlink|directory changed/i,
+    );
+    assert.equal(await outside.exists("new.md"), false);
+    assert.equal(await outside.read(decoy), "keep\n");
   });
 });
 
@@ -241,6 +317,38 @@ describe("Repository verified replacement", () => {
     );
 
     assert.deepEqual([...(await repo.snapshot())], [["elsewhere.md", "before\n"]]);
+  });
+
+  it("preserves the original and avoids outside reads or cleanup after a parent swap during rename", async () => {
+    const { repo } = await repository();
+    const { repo: outside } = await repository();
+    await repo.write("parent/notes.md", "before\n");
+    await outside.write("notes.md", "outside\n");
+    let asideName = "";
+    const swapped = async (oldPath: string, newPath: string): Promise<void> => {
+      await rename(oldPath, newPath);
+      asideName = newPath.split(/[\\/]/).at(-1) ?? "";
+      await outside.write(asideName, "keep\n");
+      await rename(repo.path("parent"), repo.path("original-parent"));
+      await repo.link(outside.root, "parent");
+    };
+    await assert.rejects(
+      () =>
+        replaceTextFileIfUnchanged(
+          repo.path("parent/notes.md"),
+          Buffer.from("before\n"),
+          "after\n",
+          link,
+          swapped,
+        ),
+      (error: unknown) =>
+        error instanceof SyngrapheError &&
+        error.exitCode === 2 &&
+        /cleanup was stopped/.test(error.details ?? ""),
+    );
+    assert.equal(await repo.read(`original-parent/${asideName}`), "before\n");
+    assert.equal(await outside.read(asideName), "keep\n");
+    assert.equal(await outside.read("notes.md"), "outside\n");
   });
 
   for (const code of ["EBUSY", "EPERM"]) {
