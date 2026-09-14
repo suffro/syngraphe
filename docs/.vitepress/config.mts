@@ -88,6 +88,7 @@ const sidebar = [
       { text: "Why Syngraphe", link: "/getting-started/why-syngraphe" },
       { text: "Installation", link: "/getting-started/installation" },
       { text: "Quickstart", link: "/getting-started/quickstart" },
+      { text: "The Name", link: "/getting-started/the-name" },
     ],
   },
   {
