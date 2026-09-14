@@ -85,9 +85,8 @@ write can leave the new file partial.
 
 ### A new document is never created twice
 
-Updating a file and creating one are published differently. An update is renamed over its
-destination. A create is linked into place, which fails if the destination exists — so the question
-"is this path free?" and the act of claiming it are a single filesystem operation.
+A create is linked into place, which fails if the destination exists — so the question "is this
+path free?" and the act of claiming it are a single filesystem operation.
 
 This matters when two Syngraphe runs create the same document at once. Both can plan it while the
 path is still missing, and both can pass their preflight; exactly one then publishes, and the other

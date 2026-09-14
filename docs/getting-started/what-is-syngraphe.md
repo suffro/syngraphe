@@ -9,16 +9,20 @@ order: 1
 Syngraphe keeps repository context versioned, current, and understandable by both humans and coding
 agents.
 
-Concretely, it does three things:
+Concretely:
 
 1. **`syngraphe init`** creates `.context/` — a small set of Markdown documents describing the
    repository — and adds a managed block to `AGENTS.md` telling agents to read them.
 2. **`syngraphe status`** summarizes what that context currently contains.
 3. **`syngraphe check`** verifies that the context is structurally intact and that the agent
    bootstrap has not drifted.
+4. **`syngraphe stats`** measures the context and flags large or duplicated documents.
+5. **`truth`, `decision`, `state` and `history`** create and list documents in each part of the
+   context; `state archive` moves the current state into history.
 
-That is the whole of version 0.1. There is no server, no account, no index to rebuild, and no AI
-call anywhere in the tool.
+Every command that writes can show its plan first with `--dry-run`, `--scope` gives a package in a
+monorepo its own context, and a bundled GitHub Action runs the same checks in CI. There is no
+server, no account, no index to rebuild, and no AI call anywhere in the tool.
 
 ## What "repository context" means here
 

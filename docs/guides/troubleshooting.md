@@ -66,7 +66,15 @@ Syngraphe will not modify it. Move or rename it, then re-run.
 ```
 
 Some other tool — or an earlier convention in your team — already uses that directory name. Nothing
-is written, nothing is merged. If that tool keeps a manifest, the reason names it instead:
+is written, nothing is merged.
+
+Without a declared protocol, a `.context/` is recognised only by its complete standard shape: every
+top-level entry is `manifest.json`, `index.md`, `truth/`, `state/`, `decisions/` or `history/`, each
+of its standard kind, and at least one standard document exists. The reason names what did not
+fit — `contains unrelated entries: …`, `contains standard names of the wrong kind: …`, or
+`contains no standard context document`. A lone `truth/` directory is not enough.
+
+If that tool keeps a manifest, the reason names it instead:
 
 ```text
 .context/manifest.json declares protocol "acme-context", not "repository-context".
@@ -129,6 +137,12 @@ Markdown links resolve relative to the document containing them. An inline-code 
 only when it names a `.md` file, and it is accepted if it resolves relative to the document, from the
 repository root, or from `.context/` — so a directory mentioned in prose never produces this finding.
 
+A reference through a symlink — the file itself or a directory on the way — counts only when the
+link's target exists inside the Git repository; a broken link, or one pointing outside, is reported.
+
+Match letter case exactly. On a case-insensitive filesystem (the macOS and Windows defaults) a
+reference to `readme.md` finds `README.md` locally, then fails on Linux CI.
+
 ## `Expected context file is missing.` — `CTX002`
 
 One of the seven files `init` creates is gone — often a deletion, sometimes a merge. Running
@@ -184,11 +198,73 @@ Fix: resolve the link manually and re-run. This guard has no override.
 
 ## `Cannot patch <file>: the file changed since the plan was built.`
 
-The repository changed between planning and applying — usually another process, occasionally an
-editor saving in the background. Nothing was written: preconditions are verified for every operation
-before the first one is applied.
+The file changed between planning and applying — an editor saving, an agent, or a second Syngraphe
+run. The edit was kept, not overwritten: the file is compared before the first write, and compared
+again as it is published.
 
-Fix: re-run the command to build a fresh plan.
+When the change is caught before the first write, nothing was written. When it is caught during
+publication, earlier operations of the same plan may already be applied: after `state archive`, the
+history file exists and `state/current.md` is left as it was edited.
+
+Fix: re-run the command to build a fresh plan. For an interrupted archive, pick another name or
+delete the new history file first.
+
+## `Cannot create <file>: it already exists.`
+
+Another process created the same file between planning and applying — often a second Syngraphe run
+creating the same document. It was not replaced. Re-run the command; for a document, choose another
+name if the existing file is not the one you meant to create.
+
+## `<file> must be valid UTF-8 to patch without changing its bytes.` — `AGENT005`, `CLAUDE005`
+
+`AGENTS.md` or `CLAUDE.md` contains bytes that are not valid UTF-8, usually from a legacy encoding
+such as Latin-1 or Windows-1252. Editing it as text would replace those bytes, so `init` reports a
+conflict and writes nothing, and `check` reports an error.
+
+Fix: convert the file to UTF-8 — for example with `iconv -f WINDOWS-1252 -t UTF-8` — and re-run. A
+UTF-8 byte order mark is fine. `state archive` refuses a non-UTF-8 `state/current.md` for the same
+reason: `Current state must be valid UTF-8 to archive without changing its bytes.`
+
+## `Cannot patch <file>: it could not be moved aside to verify it (EBUSY).`
+
+In practice Windows only: another program — an editor, an indexer, an antivirus scan — holds the file
+open, so it cannot be renamed for verification. The code may also read `EPERM`. Nothing was changed,
+and Syngraphe does not retry. Close the program or wait for it, then re-run.
+
+## `The file it held before is preserved at <path>.aside.`
+
+Follows a `Cannot patch <file>: …` message. The file had been moved aside for verification and could
+not be put back cleanly: another process recreated the path in that moment, or the write failed.
+Nothing was discarded. The file under its own name is whatever the other process wrote, and the
+`.syngraphe-….aside` file beside it is what was there before.
+
+Fix: compare the two, keep the content you want under the original name, delete the `.aside` file,
+and re-run.
+
+## `Document already exists; choose another name.`
+
+The target of `new` or `state archive` already exists in that directory. Names are compared without
+regard to letter case, so `MY_NOTE` conflicts with `my_note.md`, and `truth new architecture`
+conflicts with the core document. Nothing is ever overwritten: pick another name, or edit the
+existing document.
+
+## `Context is <status> in scope <scope>.`
+
+Document commands and `stats` need an initialized, supported context. For `absent` or `partial`, run
+`syngraphe init` with the same `--scope`. For `unrelated`, `invalid-manifest` or `unsupported-schema`,
+resolve the classification first; the `CTX003`, `MANIFEST002` and `MANIFEST003` sections above
+cover each one.
+
+## `Use a portable Markdown filename: …`
+
+Exit code 2. A document name is a filename, not a path: letters, numbers, hyphens and underscores,
+starting with a letter or number, at most 120 characters, with an optional `.md`. `README` and
+Windows device names such as `CON` are refused. A `--title` must be a single nonempty line.
+
+## `--json requires --dry-run for mutating commands.`
+
+Exit code 2. Plan JSON exists only for dry runs, so `init`, a `new` command or `state archive` needs
+`--dry-run` alongside `--json`. Nothing was planned or written.
 
 ## `init` says "Nothing to do" but I expected changes
 

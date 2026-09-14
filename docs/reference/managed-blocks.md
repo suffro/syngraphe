@@ -82,6 +82,7 @@ property, not an aspiration — see [design decisions](/concepts/design-decision
 | Line endings            | A CRLF file stays CRLF; an LF file stays LF.                 |
 | Final newline           | A file without one keeps not having one.                     |
 | Everything outside      | Byte for byte identical.                                     |
+| Encoding                | Only valid UTF-8 is patched; any other file is a conflict and left untouched. A byte order mark is kept. |
 
 ## States a block can be in
 

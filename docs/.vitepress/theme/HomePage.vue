@@ -55,7 +55,7 @@ const capabilities = [
   },
   {
     title: "Plan, then apply",
-    text: "Every modifying command builds a plan, renders it, and applies exactly that plan. `--dry-run` runs the same planner and stops before writing.",
+    text: "Every modifying command builds a plan, renders it, and applies exactly that plan. `--dry-run` runs the same planner and changes no repository contents or Git state.",
   },
   {
     title: "Machine-readable output",
@@ -63,7 +63,7 @@ const capabilities = [
   },
   {
     title: "Careful with your files",
-    text: "Complete-file writes via temporary file and rename, never outside the Git root, never through a symlink, never into a `.context/` that belongs to something else.",
+    text: "Complete files staged beside their destination. A new file never replaces an existing one, and a patch never overwrites an edit made after planning. Never outside the Git root, never through a symlink, never into a `.context/` that belongs to something else.",
   },
   {
     title: "Useful without Syngraphe",
@@ -199,10 +199,12 @@ const capabilities = [
     <section class="syg-section" id="how-it-works">
       <div class="syg-container">
         <span class="syg-eyebrow">How it works</span>
-        <h2>Three commands, no surprises.</h2>
+        <h2>Three commands to start, no surprises.</h2>
         <p class="syg-sub">
           Each one also answers to the shorthand <code>syg</code>: <code>syg init</code>,
-          <code>syg check</code>.
+          <code>syg check</code>. As the context grows, <code>stats</code> measures it, and
+          <code>truth</code>, <code>decision</code>, <code>state</code> and <code>history</code>
+          add documents to it.
         </p>
 
         <div class="syg-steps">

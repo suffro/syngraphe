@@ -21,6 +21,8 @@ Exit codes are a contract: values are never reused and never change meaning.
 - `init` applied its plan, completed a `--dry-run`, or found nothing to do.
 - `status` always exits `0`; it reports rather than judges.
 - `check` found no errors — and no warnings, when `--strict` was passed.
+- `stats` produced its report, including when the advisory budget is exceeded.
+- A document command created or listed documents, or completed a `--dry-run`.
 
 ## `1` — context integrity failure
 
@@ -28,8 +30,14 @@ Something about the repository context is wrong and a human has to decide what t
 
 - `check` found at least one error, or a warning under `--strict`.
 - `init` built a plan containing conflicts: a hand-edited managed block, duplicate blocks,
-  unbalanced markers, or a file that cannot be managed safely. Nothing was written.
+  unbalanced markers, or a file that cannot be managed safely — including one that is not valid
+  UTF-8. Nothing was written.
 - `init` found a `.context/` that is not a Syngraphe context, or a manifest that does not parse.
+- A document command found its name already taken (letter case ignored), or `stats` or a document
+  command found no usable context.
+- An apply found the repository changed after planning: a destination another process created, a
+  file edited meanwhile, or a file that could not be moved aside to verify it. Nothing was
+  overwritten.
 
 ## `2` — invalid CLI usage
 
@@ -39,6 +47,8 @@ The command never really started.
 - An unknown command, an unknown option, or a missing argument.
 - `--json` on a mutating command without the required explicit `--dry-run`.
 - A path that cannot be written safely — outside the repository root, or through a symlink.
+- An invalid document name or title, an invalid `--budget`, a scope that is not an existing
+  directory in this repository, or `--all` together with `--scope`.
 
 `--help` and `--version` are successful outcomes and exit `0`.
 
@@ -47,7 +57,8 @@ The command never really started.
 `.context/manifest.json` declares a `schemaVersion` this build does not support, so nothing else it
 could report about the context would be trustworthy.
 
-Emitted by both `init` and `check`, and it takes precedence over `1` in `check`. The fix is to
+Emitted by `init`, `check`, `stats` and the document commands, and it takes precedence over `1` in
+`check`. The fix is to
 upgrade Syngraphe — never to lower the number in the manifest, which changes the declaration without
 changing the files.
 

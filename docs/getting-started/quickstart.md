@@ -354,4 +354,5 @@ written to; see [agent integrations](/guides/agent-integrations) for why.
 - [Adopting an existing repository](/guides/adopting-an-existing-repository) — when the documents
   you need already exist somewhere else.
 - [Agent integrations](/guides/agent-integrations) — how each agent finds the context.
-- [CLI reference](/reference/cli) — every command and flag.
+- [CLI reference](/reference/cli) — every command and flag, including `truth new` and the other
+  document commands for adding context as it grows.

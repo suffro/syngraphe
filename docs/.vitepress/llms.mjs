@@ -103,7 +103,7 @@ function header(version) {
     "> points every coding agent at it through `AGENTS.md`, and checks that the result stays intact.",
     "",
     `- Version ${version}, context schema version 1. Apache-2.0, vendor-neutral, open source.`,
-    "- Commands: `syngraphe init` (with `--dry-run`), `syngraphe status`, `syngraphe check` (with `--json` and `--strict`). The binary is also installed as `syg`.",
+    "- Commands: `syngraphe init` (with `--dry-run`), `syngraphe status`, `syngraphe check` (with `--json` and `--strict`), `syngraphe stats`, and `truth`, `decision`, `state` and `history` with `new` and `list`, plus `state archive`. `--scope` selects a package context and `--all` reports every context. The binary is also installed as `syg`.",
     "- `--dry-run` runs the same planner as the real command and performs no repository mutations: it does not modify repository contents or Git state.",
     "- The context is committed Markdown, split by lifecycle: `truth/` (architecture, conventions), `state/` (current work), `decisions/`, `history/`.",
     "- Deterministic and offline: no network calls, no AI, no account. Stable finding codes and exit codes for CI.",

@@ -122,7 +122,8 @@ eventually disagree with the first — and it will disagree exactly when it matt
 planner makes the preview a guarantee rather than a description.
 
 `--json` requires an explicit `--dry-run`. It cannot accidentally turn a requested mutation into a
-different mode, and the dry-run branch never reaches apply regardless of renderer.
+different mode, and the dry-run branch never reaches apply regardless of renderer. Planners receive
+a read-only repository type, so a planner that tries to write does not compile.
 
 **Rejected.** A `dryRun` boolean threaded through the writing code (the same code path, but with the
 writes conditionally skipped — one missed branch and the "dry" run writes).
