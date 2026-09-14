@@ -36,6 +36,11 @@ On Windows a file held open by another program cannot be renamed. That fails clo
 integrity error before anything has moved, and it is not retried. Without hard links the publish
 falls back to an exclusive create, which keeps exclusivity but not "complete file or nothing".
 
+A Windows rename also goes through a handle opened by name, so two concurrent runs can both move
+the same file; hosted CI showed it. A run that finds its moved file already gone reports the file as
+changed. If both runs read it, only one can publish and the other fails closed, keeping the file it
+moved. Exclusivity holds on every platform; only the losing run's error differs.
+
 ## Rejected alternatives
 
 - **Read, compare, rename over.** The previous behaviour, and the race this decision removes.

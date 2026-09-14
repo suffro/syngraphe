@@ -39,6 +39,7 @@ import { EXIT_INTEGRITY_FAILURE } from "./exit-codes.ts";
 export type PathKind = "file" | "directory" | "symlink" | "other" | "missing";
 
 type LinkFile = (existingPath: string, newPath: string) => Promise<void>;
+type RenameFile = (oldPath: string, newPath: string) => Promise<void>;
 
 function errorCode(error: unknown): string | undefined {
   return (error as NodeJS.ErrnoException | undefined)?.code;
@@ -224,6 +225,11 @@ export async function createTextFileExclusive(
  * that descriptor after the comparison. Its write lands in the file moved
  * aside, which is then removed. Node offers no way to exclude that writer.
  *
+ * On Windows a rename goes through a handle opened by name, so a concurrent run
+ * that opened the path first can move the file on after this call moved it. If
+ * it is gone before it is read, the call returns false; if both runs read it,
+ * only one can publish and the other fails closed.
+ *
  * If the path is taken while the original is aside, neither file is discarded:
  * the error names the preserved one.
  */
@@ -231,8 +237,9 @@ export async function replaceTextFileIfUnchanged(
   absolutePath: string,
   expected: Buffer,
   contents: string,
-  // Replaceable only so tests can reach the concurrent and fallback paths.
+  // Replaceable only so tests can reach the concurrent, fallback and busy paths.
   linkFile: LinkFile = link,
+  renameFile: RenameFile = rename,
 ): Promise<boolean> {
   const directory = path.dirname(absolutePath);
   const staged = await stageTextFile(directory, contents);
@@ -241,7 +248,7 @@ export async function replaceTextFileIfUnchanged(
   let asideHoldsOriginal = false;
   try {
     try {
-      await rename(absolutePath, aside);
+      await renameFile(absolutePath, aside);
     } catch (error) {
       if (isNotFound(error)) return false;
       // Windows refuses to rename a file another process holds open. Fail
@@ -258,7 +265,17 @@ export async function replaceTextFileIfUnchanged(
     }
     asideHoldsOriginal = true;
 
-    const current = await readFile(aside);
+    let current: Buffer;
+    try {
+      current = await readFile(aside);
+    } catch (error) {
+      if (!isNotFound(error)) throw error;
+      // Another writer moved the file on before it was read, as a concurrent
+      // Windows rename can. Nothing of ours is at `aside` and nothing was
+      // published, so this is a changed file like any other.
+      asideHoldsOriginal = false;
+      return false;
+    }
     const unchanged = current.equals(expected);
     const published = unchanged
       ? await publishExclusive(staged, absolutePath, contents, linkFile)

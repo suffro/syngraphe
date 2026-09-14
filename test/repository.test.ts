@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { link, readFile, writeFile } from "node:fs/promises";
+import { link, readFile, rename, writeFile } from "node:fs/promises";
 import { after, describe, it } from "node:test";
 import { SyngrapheError } from "../src/core/errors.ts";
 import { EXIT_INTEGRITY_FAILURE } from "../src/core/exit-codes.ts";
@@ -191,14 +191,86 @@ describe("Repository verified replacement", () => {
     await repo.write("notes.md", "before\n");
     const writers = Array.from({ length: 16 }, (_, index) => `writer ${index}\n`);
 
-    const results = await Promise.all(
+    const results = await Promise.allSettled(
       writers.map((body) => target.replace("notes.md", "before\n", body)),
     );
 
-    assert.equal(results.filter(Boolean).length, 1);
-    assert.equal(await repo.read("notes.md"), writers[results.indexOf(true)]);
-    assert.deepEqual([...(await repo.snapshot()).keys()], ["notes.md"]);
+    const winners = results.flatMap((result, index) =>
+      result.status === "fulfilled" && result.value ? [writers[index]] : [],
+    );
+    assert.equal(winners.length, 1);
+    const files = await repo.snapshot();
+    assert.equal(files.get("notes.md"), winners[0]);
+
+    // POSIX renames by name, so only one run can move the original aside and
+    // every other run sees a changed file. Windows renames through a handle
+    // opened by name, so two runs can both move and verify the original: one
+    // publishes, the other fails closed and keeps what it moved. Either way no
+    // losing run's content is ever published.
+    for (const result of results) {
+      if (result.status === "fulfilled") continue;
+      assert.equal(process.platform, "win32", String(result.reason));
+      assert.ok(preservedAside(result.reason), String(result.reason));
+    }
+    for (const [file, contents] of files) {
+      if (file === "notes.md") continue;
+      assert.equal(process.platform, "win32", file);
+      assert.match(file, /\.aside$/);
+      assert.ok(contents === "before\n" || contents === winners[0], contents);
+    }
   });
+
+  it("reports a file another writer moved on as changed, and leaves it where it went", async () => {
+    const { repo } = await repository();
+    await repo.write("notes.md", "before\n");
+    // What a concurrent Windows rename through an earlier handle does.
+    const movedOn = async (oldPath: string, newPath: string): Promise<void> => {
+      await rename(oldPath, newPath);
+      await rename(newPath, repo.path("elsewhere.md"));
+    };
+
+    assert.equal(
+      await replaceTextFileIfUnchanged(
+        repo.path("notes.md"),
+        Buffer.from("before\n"),
+        "after\n",
+        link,
+        movedOn,
+      ),
+      false,
+    );
+
+    assert.deepEqual([...(await repo.snapshot())], [["elsewhere.md", "before\n"]]);
+  });
+
+  for (const code of ["EBUSY", "EPERM"]) {
+    it(`fails closed without changing anything when moving aside fails with ${code}`, async () => {
+      const { repo } = await repository();
+      await repo.write("notes.md", "before\n");
+      // How Windows refuses to rename a file another program holds open.
+      const refused = async (): Promise<void> => {
+        throw Object.assign(new Error("resource busy or locked"), { code });
+      };
+
+      await assert.rejects(
+        () =>
+          replaceTextFileIfUnchanged(
+            repo.path("notes.md"),
+            Buffer.from("before\n"),
+            "after\n",
+            link,
+            refused,
+          ),
+        (error: unknown) =>
+          error instanceof SyngrapheError &&
+          error.exitCode === EXIT_INTEGRITY_FAILURE &&
+          /could not be moved aside/.test(error.message) &&
+          /Nothing was changed/.test(error.details ?? ""),
+      );
+
+      assert.deepEqual([...(await repo.snapshot())], [["notes.md", "before\n"]]);
+    });
+  }
 
   for (const [label, current] of [
     ["publishing a verified file", "before\n"],

@@ -112,7 +112,9 @@ instead of being replaced by content computed from an older version.
 
 If something recreates the path during that step, neither file is discarded: the run stops and
 names where the moved-aside file was kept. On Windows, a file another program holds open cannot be
-moved aside; the run stops without changing anything.
+moved aside; the run stops without changing anything. Two Syngraphe runs patching the same file at
+once on Windows can both move it: one publishes, and the other reports the file changed or stops
+with the moved file kept.
 
 One writer is out of reach: a process that already has the file open and writes through that open
 handle after the comparison. Its write lands in the file that was moved aside. Node offers no way to

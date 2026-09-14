@@ -15,8 +15,9 @@ been closed before this plan started.
 - **1.** `replaceTextFileIfUnchanged` and `Repository.replace` implement the plan; `applyPlan` uses
   them, and its preflight now compares bytes as well. The plan test was observed failing against a
   blind `writeTextFileAtomic` implementation. `Repository.write()` was kept, not removed: the
-  Action writes its report through it. The Windows `EPERM`/`EBUSY` branch has no test seam (only
-  `link` is injectable) and was verified by inspection only. See
+  Action writes its report through it. A `rename` seam added afterwards tests the Windows
+  `EPERM`/`EBUSY` branch. Hosted CI on Windows then showed a concurrent rename through an earlier
+  handle moving the aside file on before it was read; that case now returns false. See
   `../decisions/0006-patch-verification-in-the-publish-step.md`.
 - **2.** `decodeUtf8Exact` is shared by `inspectManagedFile` and `planDocument`. Because the conflict
   is raised during inspection, `check` also reports a non-UTF-8 `AGENTS.md` as `AGENT005` (and

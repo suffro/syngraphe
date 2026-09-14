@@ -19578,14 +19578,14 @@ async function createTextFileExclusive(absolutePath, contents, linkFile = import
     await (0, import_promises.unlink)(temporary).catch(() => void 0);
   }
 }
-async function replaceTextFileIfUnchanged(absolutePath, expected, contents, linkFile = import_promises.link) {
+async function replaceTextFileIfUnchanged(absolutePath, expected, contents, linkFile = import_promises.link, renameFile = import_promises.rename) {
   const directory = import_node_path.default.dirname(absolutePath);
   const staged = await stageTextFile(directory, contents);
   const aside = temporaryPath(directory, "aside");
   let asideHoldsOriginal = false;
   try {
     try {
-      await (0, import_promises.rename)(absolutePath, aside);
+      await renameFile(absolutePath, aside);
     } catch (error2) {
       if (isNotFound(error2)) return false;
       const code = errorCode(error2);
@@ -19599,7 +19599,14 @@ async function replaceTextFileIfUnchanged(absolutePath, expected, contents, link
       throw error2;
     }
     asideHoldsOriginal = true;
-    const current = await (0, import_promises.readFile)(aside);
+    let current;
+    try {
+      current = await (0, import_promises.readFile)(aside);
+    } catch (error2) {
+      if (!isNotFound(error2)) throw error2;
+      asideHoldsOriginal = false;
+      return false;
+    }
     const unchanged = current.equals(expected);
     const published = unchanged ? await publishExclusive(staged, absolutePath, contents, linkFile) : await publishExclusive(aside, absolutePath, current, linkFile);
     if (!published) throw preservedAside(absolutePath, aside, "the path was recreated meanwhile");

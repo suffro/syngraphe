@@ -26,8 +26,12 @@ These tags are independent of the npm CLI; package release metadata has not been
   build, documentation build, `action:build` with `action:check` reporting the bundle matches its
   sources, and temporary-repository checks that `init` leaves a `0xFF` `AGENTS.md` byte-identical
   and `state archive --dry-run` leaves `git status` and the `.git/index` hash unchanged. Not
-  exercised locally: Windows rename-while-open semantics and filesystems without hard links, which
-  only the `linkFile` test seam covers. Hosted CI has not run on these changes.
+  exercised locally: real Windows sharing semantics and filesystems without hard links, which the
+  `linkFile` and `renameFile` test seams simulate. The first hosted CI run failed on Ubuntu, because
+  an inline `README`-style reference written in lowercase resolved only on a case-insensitive
+  filesystem, and on Windows, because a concurrent rename through an earlier handle moved the aside
+  file on before it was read and surfaced as a preserved-aside error instead of a changed file. Both
+  are fixed locally; hosted CI has not re-run.
 - `create` operations are now exclusive at the filesystem level. The apply preflight could not keep
   two concurrent runs from creating the same missing path, because `Repository.write` published
   every operation with a rename: both passed the `missing` check and the second rename replaced the
@@ -111,12 +115,13 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Next
 
-- Run hosted CI on Ubuntu, macOS and Windows for the write surface hardening changes; Windows
-  rename semantics and the no-hard-link fallback were not exercised locally.
+- Push the CI fixes and confirm hosted CI passes on Ubuntu, macOS and Windows.
+- Consider making `LINK001` case-exact. On macOS and Windows a reference in the wrong letter case
+  resolves locally and breaks on Linux, which is how the Ubuntu failure reached CI.
 - Carry the user-visible changes into the next CLI release notes. The repository keeps no changelog
   file, so none was invented: `init` refuses a non-UTF-8 `AGENTS.md` or `CLAUDE.md` and `check`
   reports it; a patch fails instead of overwriting an edit made after planning; `status` no longer
-  counts symlinks, directories or a `readme.md` in another letter case; `LINK001` reports broken and
+  counts symlinks, directories or a README whose name uses another letter case; `LINK001` reports broken and
   out-of-repository symlinked references; a `.context/` without a declared protocol is `unrelated`
   unless its whole top level is the standard layout with at least one standard document. Decide
   whether to start a changelog.
