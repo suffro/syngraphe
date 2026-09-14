@@ -43,6 +43,9 @@ Everything else is preserved byte for byte — including CRLF line endings and a
 newline. The insertion is exactly reversible: remove the block and the file is what it was, to the
 byte. See [managed blocks](/reference/managed-blocks) for the mechanics.
 
+The file must be valid UTF-8; a byte order mark is fine. If it is not, `init` reports a conflict and
+writes nothing, because editing it as text would replace the bytes that failed to decode.
+
 If `AGENTS.md` does not exist, it is created containing only the managed block. No heading, no
 invented prose: the file is yours to grow from there.
 
@@ -81,8 +84,11 @@ This is the one case where Syngraphe refuses to act. The directory is classified
 
 A directory is Syngraphe's when its manifest declares
 `"protocol": "repository-context"` — see the [context schema](/reference/context-schema). Without
-that marker, the decision falls back to whether the directory contains anything the standard layout
-defines. The unrelated case looks like this:
+that marker, the directory's shape decides, and one familiar name is not enough: every top-level
+entry must be one the standard layout defines, with its standard kind (`index.md` a file; `truth/`,
+`state/`, `decisions/` and `history/` directories), and at least one standard document must exist
+as a regular file. An empty `.context/` counts as partial. Anything else is unrelated, which looks
+like this:
 
 ```text
 .context/ already exists and is not a Syngraphe repository context.

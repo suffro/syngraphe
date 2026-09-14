@@ -64,14 +64,17 @@ interface Plan {
 Three consequences fall out of this, none of which needed extra code:
 
 - **`--dry-run` is honest.** It runs the same planner and returns before `applyPlan`. There is no
-  second implementation that could disagree with the real one.
+  second implementation that could disagree with the real one. Planners receive a
+  `ReadOnlyRepository`, a type with no method that writes, so a planner that tried to write would
+  not compile.
 - **Plan JSON is a projection, not serialization.** It preserves operation order and paths while
   excluding created contents and patch `before`/`after` states from the public contract.
 - **Conflicts stop everything.** A plan carrying conflicts is never partially applied — a
   half-applied plan is harder to reason about than one that did not run.
 - **Stale plans fail loudly.** `patch` operations record the exact expected `before` content, and
   every precondition is verified before the first write. A file that changed underneath produces an
-  error, not a clobber.
+  error, not a clobber. The comparison is repeated inside publication, so an edit that lands after
+  that first check is caught too.
 
 The same shape is what a future `update` or `reconcile` command would reuse; nothing in the plan
 types is specific to initialization.
@@ -121,9 +124,9 @@ interface AgentIntegration {
   id: string;
   displayName: string;
   findingCodes?: AgentFindingCodes;
-  detect(repository: Repository): Promise<AgentDetection>;
-  inspect(repository: Repository): Promise<AgentIntegrationState>;
-  planIntegration(repository: Repository): Promise<Plan>;
+  detect(repository: ReadOnlyRepository): Promise<AgentDetection>;
+  inspect(repository: ReadOnlyRepository): Promise<AgentIntegrationState>;
+  planIntegration(repository: ReadOnlyRepository): Promise<Plan>;
 }
 
 interface Check {
@@ -158,10 +161,17 @@ All writing goes through one module. Commands never call `node:fs`.
 - Writes are complete-file writes: the file is written in full into a temporary file in the
   destination directory and then published from there, so an interrupted run cannot leave a
   half-written file and publication stays on one filesystem.
-- Publication distinguishes the two intents. An update is renamed over its destination, replacing
-  content the plan already compared. A create is linked into place instead: linking fails when the
-  destination exists, so checking that a path is free and claiming it are one operation and two
-  concurrent creates cannot both win.
+- Publication follows the intent, and each intent is verified by the operation that publishes it. A
+  create is linked into place: linking fails when the destination exists, so checking that a path
+  is free and claiming it are one operation and two concurrent creates cannot both win. A patch
+  renames the file aside, compares the moved bytes with the plan's expected content, and then links
+  the new file into place — or links the original back when it changed. The bytes compared are the
+  bytes replaced; the only writer left out is one that already has the original open and writes
+  through that descriptor after the comparison.
+- Without hard links (FAT, some network shares), both fall back to an exclusive create: still
+  exclusive, but a crash during that write can leave the new file partial.
+- A patch starts from the file's exact bytes. A file that is not valid UTF-8 would have its
+  undecodable bytes replaced, so it is reported as a conflict instead.
 - `Repository.resolve` rejects absolute paths and anything that escapes the selected scope. References may reach shared context inside the Git root.
 - Before writing, every path segment from the root down is checked: a symlink anywhere along the way
   is refused rather than followed.

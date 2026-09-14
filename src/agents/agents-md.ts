@@ -7,13 +7,15 @@
  */
 
 import type { Plan } from "../core/plan.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import { inspectManagedFile, type ManagedFileState, planManagedFile } from "../managed/file.ts";
 import { AGENTS_FILE, agentsManagedBody } from "../templates/agents.ts";
 
 export const AGENTS_PATCH_SUMMARY = "Syngraphe repository-context bootstrap";
 
-export async function inspectAgentsBootstrap(repository: Repository): Promise<ManagedFileState> {
+export async function inspectAgentsBootstrap(
+  repository: ReadOnlyRepository,
+): Promise<ManagedFileState> {
   return inspectManagedFile(repository, AGENTS_FILE, agentsManagedBody(repository.scope));
 }
 

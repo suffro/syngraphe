@@ -1,20 +1,44 @@
 # Write surface hardening plan
 
-## Current focus
+## Summary
 
 A repository scan found a correct but unprotected `--dry-run` guarantee, a residual TOCTOU race in
 patch publication, possible byte corruption of non-UTF-8 files patched by `init`, and five minor
 issues. Goal: close all of them with small fixes, tests observed failing before each fix, and
 documentation that promises exactly what the code guarantees.
 
-Approved plan, not started. Suggested order: 2 → 1 → 3 → 4–7 → 8 → 9. Each item can be committed
-on its own.
+Completed on 2026-09-13 in the order 2 → 1 → 3 → 4, 5, 7 → 6, 8 → 9. The create race had already
+been closed before this plan started.
 
-## Recent relevant changes
+## Outcome
 
-None yet for this plan. The create race was already closed (see `current.md`).
+- **1.** `replaceTextFileIfUnchanged` and `Repository.replace` implement the plan; `applyPlan` uses
+  them, and its preflight now compares bytes as well. The plan test was observed failing against a
+  blind `writeTextFileAtomic` implementation. `Repository.write()` was kept, not removed: the
+  Action writes its report through it. The Windows `EPERM`/`EBUSY` branch has no test seam (only
+  `link` is injectable) and was verified by inspection only. See
+  `../decisions/0006-patch-verification-in-the-publish-step.md`.
+- **2.** `decodeUtf8Exact` is shared by `inspectManagedFile` and `planDocument`. Because the conflict
+  is raised during inspection, `check` also reports a non-UTF-8 `AGENTS.md` as `AGENT005` (and
+  `CLAUDE.md` as `CLAUDE005`). The BOM test passed before the fix too: `String#trim` already
+  strips U+FEFF when looking for a heading, so it stands as a guard.
+- **3.** `ReadOnlyRepository` narrows every listed signature, plus `discoverScopes` and
+  `referenceExists`. A temporary `repository.write()` in `planDocument` failed `tsc` with TS2339,
+  and failed all document cases of `test/dry-run.test.ts`; a temporary `git add` in the `init`
+  dry-run path failed the `init` cases through the index, status and object count. Both probes were
+  removed.
+- **4, 5, 7.** Each test was observed failing before its fix. Item 4 shares `listDocumentFiles`
+  between `status` and `<category> list`. Item 7 is a visible tightening: a manifest-less or
+  protocol-less `.context/` with any unknown top-level entry is now `unrelated`, which can affect a
+  v0.1.0 context that gained extra top-level files.
+- **6.** Wording only. The optional cleanup of a partial fallback file was not implemented: it needs a
+  test seam for a write failing after the exclusive open, and unlinking by name could remove a file
+  that replaced it meanwhile.
+- **8, 9.** Documentation, architecture context and decision `0006` updated. No changelog file or CLI
+  release-notes process exists, so the user-visible changes are listed in `state/current.md`
+  instead.
 
-## Next
+## The approved plan
 
 ### 1. Patch TOCTOU race (highest priority)
 
@@ -161,6 +185,6 @@ have already been moved to `state/`.
 7. Not verifiable on macOS: Windows rename semantics and the FAT/network-share fallback. CI matrix
    and the `linkFile` seam cover them; say so in the PR.
 
-## Blockers
+## Follow-up
 
-None.
+Hosted CI on Windows and the next CLI release notes, both tracked in `state/current.md`.

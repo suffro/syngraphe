@@ -18,7 +18,7 @@ import {
   type ExitCode,
 } from "../core/exit-codes.ts";
 import { applyPlan, emptyPlan, type Plan } from "../core/plan.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository, Repository } from "../core/repository.ts";
 import { inspectContext } from "../inspectors/context.ts";
 import {
   CONTEXT_DIRECTORY,
@@ -41,7 +41,7 @@ export interface InitOptions {
  * Throws when the repository is in a state Syngraphe must not act on at all;
  * conditions that only block part of the work are reported as plan conflicts.
  */
-export async function planInitialization(repository: Repository): Promise<Plan> {
+export async function planInitialization(repository: ReadOnlyRepository): Promise<Plan> {
   const plan = emptyPlan();
   const context = await inspectContext(repository);
 

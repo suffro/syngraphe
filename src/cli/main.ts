@@ -50,7 +50,7 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
   program
     .command("init")
     .description("Create the repository context and the agent bootstrap files.")
-    .option("--dry-run", "Show the plan without modifying any file.", false)
+    .option("--dry-run", "Show the plan without changing repository contents or Git state.", false)
     .option("--json", "Emit the dry-run plan as versioned JSON.", false)
     .action(async (commandOptions: { dryRun: boolean; json: boolean }) => {
       const repository = await selectRepository(cwd, program.opts().scope);
@@ -120,7 +120,11 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
       .command("new <name>")
       .description("Create a Markdown document without overwriting existing files.")
       .option("--title <title>", "Document heading (defaults to the filename with spaces).")
-      .option("--dry-run", "Show the plan without writing.", false)
+      .option(
+        "--dry-run",
+        "Show the plan without changing repository contents or Git state.",
+        false,
+      )
       .option("--json", "Emit the dry-run plan as versioned JSON.", false)
       .action(
         async (
@@ -149,7 +153,11 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
       group
         .command("archive <name>")
         .description("Preserve current state in history and reset current.md to its template.")
-        .option("--dry-run", "Show the plan without writing.", false)
+        .option(
+          "--dry-run",
+          "Show the plan without changing repository contents or Git state.",
+          false,
+        )
         .option("--json", "Emit the dry-run plan as versioned JSON.", false)
         .action(async (name: string, commandOptions: { dryRun: boolean; json: boolean }) => {
           const repository = await selectRepository(cwd, program.opts().scope);

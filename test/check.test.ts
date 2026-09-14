@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
 import { after, describe, it } from "node:test";
 import { createCapturedOutput } from "../src/cli/output.ts";
 import { runCheck } from "../src/commands/check.ts";
@@ -149,6 +150,39 @@ describe("syngraphe check", () => {
     assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
   });
 
+  it("accepts a symlinked reference whose target stays inside the repository", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.link("architecture.md", ".context/truth/alias.md");
+    await repo.write(INDEX_PATH, "# Repository Context\n\nSee [alias](truth/alias.md).\n");
+
+    const { report } = await check(repo);
+
+    assert.ok(!codes(report).includes("LINK001"), JSON.stringify(report.findings));
+  });
+
+  it("reports symlinked references that are broken or lead outside the repository", async () => {
+    const repo = await repoWith();
+    const outside = await repoWith({ "shared/secret.md": "# Outside\n" });
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.link("nowhere.md", ".context/truth/broken.md");
+    await repo.link(outside.path("shared/secret.md"), ".context/truth/outside.md");
+    await repo.link(outside.path("shared"), ".context/shared");
+    await repo.write(
+      INDEX_PATH,
+      "# Repository Context\n\n[a](truth/broken.md)\n[b](truth/outside.md)\n[c](shared/secret.md)\n",
+    );
+
+    const { code, report } = await check(repo);
+    const lines = report.findings
+      .filter((finding) => finding.code === "LINK001")
+      .map((finding) => finding.line);
+
+    assert.equal(code, 1);
+    // A final link, a final link out of the tree, and an intermediate one.
+    assert.deepEqual(lines, [3, 4, 5]);
+  });
+
   it("does not treat a bare file extension as a reference", async () => {
     const repo = await repoWith();
     assert.equal((await runCli(repo, ["init"])).code, 0);
@@ -250,6 +284,19 @@ describe("syngraphe check", () => {
     assert.equal(code, 1);
     assert.equal(finding?.severity, "error");
     assert.equal(finding?.file, "AGENTS.md");
+  });
+
+  it("reports an AGENTS.md that is not valid UTF-8 as unmanageable", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    const patched = Buffer.from(await repo.read("AGENTS.md"));
+    await writeFile(repo.path("AGENTS.md"), Buffer.concat([patched, Buffer.from([0xff, 0x0a])]));
+
+    const { code, report } = await check(repo);
+    const finding = report.findings.find((entry) => entry.code === "AGENT005");
+
+    assert.equal(code, 1);
+    assert.match(finding?.message ?? "", /must be valid UTF-8/);
   });
 
   it("reports duplicate AGENTS.md blocks", async () => {

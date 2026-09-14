@@ -1,6 +1,6 @@
 import path from "node:path";
 import { extractLocalReferences } from "../core/markdown.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import { referenceExists } from "../core/scopes.ts";
 import { CONTEXT_DIRECTORY } from "../templates/context.ts";
 import type { Check, Finding } from "./types.ts";
@@ -51,7 +51,7 @@ export const referencesCheck: Check = {
  * `index.md` means, so all three are accepted before calling a reference broken.
  */
 async function resolves(
-  repository: Repository,
+  repository: ReadOnlyRepository,
   directory: string,
   target: string,
   kind: "link" | "code",
@@ -71,7 +71,10 @@ async function resolves(
   return false;
 }
 
-async function listMarkdownFiles(repository: Repository, directory: string): Promise<string[]> {
+async function listMarkdownFiles(
+  repository: ReadOnlyRepository,
+  directory: string,
+): Promise<string[]> {
   const found: string[] = [];
   const entries = await repository.list(directory);
   if (entries === null) return found;

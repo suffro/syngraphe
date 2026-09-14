@@ -7,7 +7,7 @@
  */
 
 import { emptyPlan, type Plan } from "../../core/plan.ts";
-import type { Repository } from "../../core/repository.ts";
+import type { ReadOnlyRepository } from "../../core/repository.ts";
 import { AGENTS_FILE } from "../../templates/agents.ts";
 import type { AgentDetection, AgentIntegration, AgentIntegrationState } from "../types.ts";
 
@@ -19,7 +19,7 @@ export interface NativeIntegrationOptions {
 }
 
 export function createNativeIntegration(options: NativeIntegrationOptions): AgentIntegration {
-  async function detect(repository: Repository): Promise<AgentDetection> {
+  async function detect(repository: ReadOnlyRepository): Promise<AgentDetection> {
     const evidence: string[] = [];
     for (const candidate of options.evidencePaths) {
       const path = candidate.endsWith("/") ? candidate.slice(0, -1) : candidate;
@@ -34,7 +34,7 @@ export function createNativeIntegration(options: NativeIntegrationOptions): Agen
 
     detect,
 
-    async inspect(repository: Repository): Promise<AgentIntegrationState> {
+    async inspect(repository: ReadOnlyRepository): Promise<AgentIntegrationState> {
       const detection = await detect(repository);
       return {
         status: "native",
@@ -44,7 +44,7 @@ export function createNativeIntegration(options: NativeIntegrationOptions): Agen
       };
     },
 
-    async planIntegration(repository: Repository): Promise<Plan> {
+    async planIntegration(repository: ReadOnlyRepository): Promise<Plan> {
       const plan = emptyPlan();
       const detection = await detect(repository);
       for (const path of detection.evidence) {

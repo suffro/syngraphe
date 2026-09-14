@@ -20,6 +20,10 @@ final newline are preserved as found.
 Enforced by the managed-block subsystem, which is pure text manipulation and tested against CRLF
 files, files with no final newline, files with and without a leading heading, and empty files.
 
+Preserving bytes means reading them exactly. A file that is not valid UTF-8 cannot be edited as text
+without replacing the bytes that failed to decode, so it is reported as a conflict — `AGENT005` for
+`AGENTS.md` — and left alone. A UTF-8 byte order mark is kept.
+
 ### Insertion is exactly reversible
 
 Remove the managed block from a file Syngraphe patched and you get the original bytes back.
@@ -51,6 +55,17 @@ If any part of the plan is blocked, `init` renders the conflict and stops. No op
 A partially applied change is harder to reason about than one that did not happen, and there is no
 flag to force past this: fix the conflict, then run again.
 
+### A dry run changes nothing
+
+`--dry-run` runs the same planner as the real command and performs no repository mutations: it does
+not modify repository contents or Git state.
+
+Enforced twice. Planners receive a read-only view of the repository whose type has no method that
+writes, so a planner that tried to write would not compile. And one test runs every mutating
+command with `--dry-run`, with and without `--json`, in a repository with untracked, staged and
+unstaged changes, then compares the working tree, `HEAD`, the index, refs, config and Git's own
+status before and after.
+
 ### Machine-readable dry runs expose no file bodies
 
 `--dry-run --json` renders the same plan as the human preview and stops before apply. Its public
@@ -63,6 +78,10 @@ planning or writing.
 
 Every write goes to a temporary file in the destination directory and is published from there. An
 interrupted run leaves either the old file or the new one, never half of either.
+
+The exception is a filesystem without hard links — FAT, some network shares. There a file is
+published with an exclusive create and a write instead: still exclusive, but a crash during that
+write can leave the new file partial.
 
 ### A new document is never created twice
 
@@ -82,6 +101,22 @@ The repository changed after the plan was built. Re-run the command.
 Filesystems without hard links — FAT, some network shares — still decide a single winner, because
 the file is created there with an exclusive open instead. Only on those filesystems does the created
 file become visible before its contents land.
+
+### A concurrent edit is never overwritten
+
+A patch records the exact bytes it expects to replace. They are compared before the first write,
+and compared again as part of publishing: the file is renamed aside, the moved bytes are compared,
+and only then is the new file linked into place. If they differ, the original goes back under its
+name and the run stops with an integrity failure. An edit made after the plan was built survives,
+instead of being replaced by content computed from an older version.
+
+If something recreates the path during that step, neither file is discarded: the run stops and
+names where the moved-aside file was kept. On Windows, a file another program holds open cannot be
+moved aside; the run stops without changing anything.
+
+One writer is out of reach: a process that already has the file open and writes through that open
+handle after the comparison. Its write lands in the file that was moved aside. Node offers no way to
+exclude it.
 
 ### Nothing is written outside the Git root
 
@@ -103,8 +138,10 @@ inside `.context/` cannot lead a check out of the repository.
 
 ### An unrecognised `.context/` is never touched
 
-If `.context/` exists, has no Syngraphe manifest, and contains entries Syngraphe does not recognise,
-`init` aborts with an explanation. It does not merge, does not adopt, and does not "clean up" — the
+If `.context/` exists and nothing identifies it as a repository context, `init` aborts with an
+explanation. A manifest identifies it by declaring the protocol. Without that declaration only the
+complete standard shape does: every top-level entry a standard one of its standard kind, and at
+least one standard document present. A lone `truth/` directory is not enough. It does not merge, does not adopt, and does not "clean up" — the
 directory may hold work nobody has another copy of.
 
 ### Nothing leaves the machine
@@ -127,6 +164,8 @@ daemon, and does not modify any configuration outside the files listed in its pl
 | Adopt an unrelated `.context/`               | It may belong to another tool, or hold irreplaceable work.           |
 | Write through a symlink                      | The target may be outside the repository.                            |
 | Replace a file another run just created      | The losing run never read what it would destroy.                     |
+| Overwrite an edit made after planning        | The run compared an older version, not the one it would destroy.     |
+| Patch a file that is not valid UTF-8         | Bytes that do not decode would be rewritten.                         |
 | Downgrade an unsupported schema              | The version describes the files; lowering it makes it a lie.         |
 | Rewrite existing context files to templates  | Your content is not Syngraphe's to normalise.                        |
 | Delete anything                              | v0.1 has no destructive operation at all.                            |

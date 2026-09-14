@@ -19486,11 +19486,14 @@ var SyngrapheError = class extends Error {
 var import_node_crypto = require("node:crypto");
 var import_promises = require("node:fs/promises");
 var import_node_path = __toESM(require("node:path"), 1);
+function errorCode(error2) {
+  return error2?.code;
+}
 function isNotFound(error2) {
-  return error2?.code === "ENOENT";
+  return errorCode(error2) === "ENOENT";
 }
 function isAlreadyExists(error2) {
-  return error2?.code === "EEXIST";
+  return errorCode(error2) === "EEXIST";
 }
 async function pathKind(absolutePath) {
   try {
@@ -19506,6 +19509,10 @@ async function pathKind(absolutePath) {
 }
 async function readTextFile(absolutePath) {
   return (await readBinaryFile(absolutePath))?.toString("utf8") ?? null;
+}
+function decodeUtf8Exact(bytes) {
+  const text = bytes.toString("utf8");
+  return Buffer.from(text, "utf8").equals(bytes) ? text : null;
 }
 async function listDirectory(absolutePath) {
   try {
@@ -19525,9 +19532,12 @@ async function resolveRealPath(absolutePath) {
     return null;
   }
 }
+function temporaryPath(directory, extension) {
+  return import_node_path.default.join(directory, `.syngraphe-${(0, import_node_crypto.randomBytes)(6).toString("hex")}.${extension}`);
+}
 async function stageTextFile(directory, contents) {
   await ensureDirectory(directory);
-  const temporary = import_node_path.default.join(directory, `.syngraphe-${(0, import_node_crypto.randomBytes)(6).toString("hex")}.tmp`);
+  const temporary = temporaryPath(directory, "tmp");
   try {
     await (0, import_promises.writeFile)(temporary, contents, { encoding: "utf8", mode: 420 });
   } catch (error2) {
@@ -19535,6 +19545,21 @@ async function stageTextFile(directory, contents) {
     throw error2;
   }
   return temporary;
+}
+async function publishExclusive(source, destination, contents, linkFile) {
+  try {
+    await linkFile(source, destination);
+    return true;
+  } catch (error2) {
+    if (isAlreadyExists(error2)) return false;
+    try {
+      await (0, import_promises.writeFile)(destination, contents, { mode: 420, flag: "wx" });
+      return true;
+    } catch (fallbackError) {
+      if (isAlreadyExists(fallbackError)) return false;
+      throw fallbackError;
+    }
+  }
 }
 async function writeTextFileAtomic(absolutePath, contents) {
   const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
@@ -19548,20 +19573,54 @@ async function writeTextFileAtomic(absolutePath, contents) {
 async function createTextFileExclusive(absolutePath, contents, linkFile = import_promises.link) {
   const temporary = await stageTextFile(import_node_path.default.dirname(absolutePath), contents);
   try {
-    await linkFile(temporary, absolutePath);
-    return true;
-  } catch (error2) {
-    if (isAlreadyExists(error2)) return false;
-    try {
-      await (0, import_promises.writeFile)(absolutePath, contents, { encoding: "utf8", mode: 420, flag: "wx" });
-      return true;
-    } catch (fallbackError) {
-      if (isAlreadyExists(fallbackError)) return false;
-      throw fallbackError;
-    }
+    return await publishExclusive(temporary, absolutePath, contents, linkFile);
   } finally {
     await (0, import_promises.unlink)(temporary).catch(() => void 0);
   }
+}
+async function replaceTextFileIfUnchanged(absolutePath, expected, contents, linkFile = import_promises.link) {
+  const directory = import_node_path.default.dirname(absolutePath);
+  const staged = await stageTextFile(directory, contents);
+  const aside = temporaryPath(directory, "aside");
+  let asideHoldsOriginal = false;
+  try {
+    try {
+      await (0, import_promises.rename)(absolutePath, aside);
+    } catch (error2) {
+      if (isNotFound(error2)) return false;
+      const code = errorCode(error2);
+      if (code === "EPERM" || code === "EBUSY") {
+        throw new SyngrapheError(
+          `Cannot patch ${absolutePath}: it could not be moved aside to verify it (${code}).`,
+          EXIT_INTEGRITY_FAILURE,
+          "Nothing was changed. Another process may have the file open; close it and re-run."
+        );
+      }
+      throw error2;
+    }
+    asideHoldsOriginal = true;
+    const current = await (0, import_promises.readFile)(aside);
+    const unchanged = current.equals(expected);
+    const published = unchanged ? await publishExclusive(staged, absolutePath, contents, linkFile) : await publishExclusive(aside, absolutePath, current, linkFile);
+    if (!published) throw preservedAside(absolutePath, aside, "the path was recreated meanwhile");
+    asideHoldsOriginal = false;
+    return unchanged;
+  } catch (error2) {
+    if (asideHoldsOriginal && !(error2 instanceof SyngrapheError)) {
+      throw preservedAside(absolutePath, aside, error2 instanceof Error ? error2.message : error2);
+    }
+    throw error2;
+  } finally {
+    await (0, import_promises.unlink)(staged).catch(() => void 0);
+    if (!asideHoldsOriginal) await (0, import_promises.unlink)(aside).catch(() => void 0);
+  }
+}
+function preservedAside(absolutePath, aside, reason) {
+  return new SyngrapheError(
+    `Cannot patch ${absolutePath}: ${String(reason)}.`,
+    EXIT_INTEGRITY_FAILURE,
+    `The file it held before is preserved at ${aside}. Compare the two, keep what you need, and re-run.`
+  );
 }
 async function fileSize(absolutePath) {
   return (await (0, import_promises.lstat)(absolutePath)).size;
@@ -19717,6 +19776,9 @@ var Repository = class _Repository {
    * neither the target nor any of its parent directories is a symlink.
    * Syngraphe refuses to write through links rather than trying to decide which
    * ones are safe.
+   *
+   * Nothing is compared first, so plan operations never use it: a patch goes
+   * through `replace` and a new file through `create`.
    */
   async write(relativePath, contents) {
     const absolute = this.resolve(relativePath);
@@ -19736,6 +19798,19 @@ var Repository = class _Repository {
     const absolute = this.resolve(relativePath);
     await this.assertWritablePath(relativePath);
     return createTextFileExclusive(absolute, contents);
+  }
+  /**
+   * Replace a file only if it still contains exactly `expected`, under the same
+   * path-safety rules as `write`.
+   *
+   * Returns false, leaving the file as found, when it is missing or holds other
+   * content. The comparison is part of publishing, so an edit made after the
+   * caller's own check is kept rather than overwritten.
+   */
+  async replace(relativePath, expected, contents) {
+    const absolute = this.resolve(relativePath);
+    await this.assertWritablePath(relativePath);
+    return replaceTextFileIfUnchanged(absolute, Buffer.from(expected, "utf8"), contents);
   }
   async makeDirectory(relativePath) {
     const absolute = this.resolve(relativePath);
@@ -19899,8 +19974,8 @@ async function inspectContext(repository) {
     if (await repository.kind(file) === "file") presentFiles.push(file);
     else missingFiles.push(file);
   }
-  const decisionCount = await countDocuments(repository, DECISIONS_DIRECTORY);
-  const historyCount = await countDocuments(repository, HISTORY_DIRECTORY);
+  const decisionCount = (await listDocumentFiles(repository, DECISIONS_DIRECTORY)).length;
+  const historyCount = (await listDocumentFiles(repository, HISTORY_DIRECTORY)).length;
   const base = {
     conflictReason: null,
     manifest,
@@ -19909,13 +19984,13 @@ async function inspectContext(repository) {
     decisionCount,
     historyCount
   };
-  const shape = await inspectShape(repository);
+  const shapeProblem = await inspectShape(repository, presentFiles);
   if (!manifest.present) {
-    if (shape.foreign) {
+    if (shapeProblem !== null) {
       return {
         ...base,
         status: "unrelated",
-        conflictReason: `${CONTEXT_DIRECTORY}/ exists, has no ${MANIFEST_PATH}, and contains unrelated entries: ${shape.entries.join(", ")}.`
+        conflictReason: `${CONTEXT_DIRECTORY}/ exists, has no ${MANIFEST_PATH}, and ${shapeProblem}.`
       };
     }
     return { ...base, status: "partial" };
@@ -19928,11 +20003,11 @@ async function inspectContext(repository) {
       conflictReason: `${MANIFEST_PATH} declares protocol "${manifest.protocol}", not "${CONTEXT_PROTOCOL}".`
     };
   }
-  if (manifest.protocol === null && shape.foreign) {
+  if (manifest.protocol === null && shapeProblem !== null) {
     return {
       ...base,
       status: "unrelated",
-      conflictReason: `${MANIFEST_PATH} does not declare "protocol": "${CONTEXT_PROTOCOL}", and ${CONTEXT_DIRECTORY}/ contains unrelated entries: ${shape.entries.join(", ")}.`
+      conflictReason: `${MANIFEST_PATH} does not declare "protocol": "${CONTEXT_PROTOCOL}", and ${CONTEXT_DIRECTORY}/ ${shapeProblem}.`
     };
   }
   if (manifest.schemaVersion === null) return { ...base, status: "invalid-manifest" };
@@ -19941,13 +20016,35 @@ async function inspectContext(repository) {
   }
   return { ...base, status: missingFiles.length === 0 ? "valid" : "partial" };
 }
-async function inspectShape(repository) {
+async function listDocumentFiles(repository, directory) {
+  if (await repository.kind(directory) !== "directory") return [];
+  const files = [];
+  for (const entry of await repository.list(directory) ?? []) {
+    if (!entry.endsWith(".md") || entry.toLowerCase() === "readme.md") continue;
+    const file = `${directory}/${entry}`;
+    if (await repository.kind(file) === "file") files.push(file);
+  }
+  return files;
+}
+async function inspectShape(repository, presentFiles) {
   const listed = await repository.list(CONTEXT_DIRECTORY) ?? [];
   const entries = listed.filter((entry) => entry !== ".DS_Store" && entry !== MANIFEST_FILE);
-  return {
-    entries,
-    foreign: entries.length > 0 && !entries.some((entry) => CONTEXT_ENTRIES.includes(entry))
-  };
+  if (entries.length === 0) return null;
+  const unknown = entries.filter((entry) => !CONTEXT_ENTRIES.includes(entry));
+  if (unknown.length > 0) return `contains unrelated entries: ${unknown.join(", ")}`;
+  const wrongKind = [];
+  for (const entry of entries) {
+    const expected = entry.endsWith(".md") ? "file" : "directory";
+    const kind = await repository.kind(`${CONTEXT_DIRECTORY}/${entry}`);
+    if (kind !== expected) wrongKind.push(`${entry} (${kind})`);
+  }
+  if (wrongKind.length > 0) {
+    return `contains standard names of the wrong kind: ${wrongKind.join(", ")}`;
+  }
+  if (!presentFiles.some((file) => file !== MANIFEST_PATH)) {
+    return "contains no standard context document";
+  }
+  return null;
 }
 async function inspectManifest(repository) {
   const kind = await repository.kind(MANIFEST_PATH);
@@ -20000,12 +20097,6 @@ async function inspectManifest(repository) {
   const schemaVersion = typeof record.schemaVersion === "number" ? record.schemaVersion : null;
   const layout = typeof record.layout === "string" ? record.layout : null;
   return { present: true, parsed: true, protocol, schemaVersion, layout, parseError: null };
-}
-async function countDocuments(repository, directory) {
-  if (await repository.kind(directory) !== "directory") return 0;
-  const entries = await repository.list(directory);
-  if (entries === null) return 0;
-  return entries.filter((entry) => entry.endsWith(".md") && entry !== "README.md").length;
 }
 function emptyInspection(status, conflictReason) {
   return {
@@ -20302,9 +20393,21 @@ async function inspectManagedFile(repository, path7, expectedBody) {
       null
     );
   }
-  const content = await repository.read(path7);
-  if (content === null) {
+  const bytes = await repository.readBytes(path7);
+  if (bytes === null) {
     return state(path7, kind, null, "conflict", null, `${path7} could not be read.`, null);
+  }
+  const content = decodeUtf8Exact(bytes);
+  if (content === null) {
+    return state(
+      path7,
+      kind,
+      null,
+      "conflict",
+      null,
+      `${path7} must be valid UTF-8 to patch without changing its bytes.`,
+      "Convert the file to UTF-8 and re-run; Syngraphe will not rewrite bytes it cannot decode."
+    );
   }
   const block = validateManagedBlock(content, expectedBody);
   switch (block.status) {
@@ -20805,10 +20908,14 @@ async function discoverScopes(repository) {
 async function referenceExists(repository, candidate) {
   const root = Repository.atRoot(repository.gitRoot);
   const relative = import_node_path3.default.relative(root.root, import_node_path3.default.resolve(repository.root, candidate));
-  if (relative === ".." || relative.startsWith(`..${import_node_path3.default.sep}`) || import_node_path3.default.isAbsolute(relative)) {
-    return false;
-  }
-  return await root.kind(relative) !== "missing";
+  if (escapes(relative)) return false;
+  const target = await root.realPath(relative);
+  const realRoot = await root.realPath(".");
+  if (target === null || realRoot === null) return false;
+  return !escapes(import_node_path3.default.relative(realRoot, target));
+}
+function escapes(relative) {
+  return relative === ".." || relative.startsWith(`..${import_node_path3.default.sep}`) || import_node_path3.default.isAbsolute(relative);
 }
 
 // src/checks/references.ts

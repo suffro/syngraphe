@@ -42,6 +42,22 @@ describe("syngraphe status", () => {
     assert.match(result.stdout, /1 warning/);
   });
 
+  it("counts only regular Markdown documents and excludes a README in any case", async () => {
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write(".context/decisions/0001-real.md", "# Real\n");
+    await repo.link("0001-real.md", ".context/decisions/0002-link.md");
+    await repo.makeDirectory(".context/decisions/0003-folder.md");
+    // Removed first: on a case-insensitive filesystem both names are one file.
+    await repo.remove(".context/history/README.md");
+    await repo.write(".context/history/readme.md", "# History\n");
+
+    const result = await runCli(repo, ["status"]);
+
+    assert.match(result.stdout, /decisions\s+1\n/);
+    assert.match(result.stdout, /history\s+0\n/);
+  });
+
   it("does not modify the repository", async () => {
     const repo = await repoWith();
     assert.equal((await runCli(repo, ["init"])).code, 0);

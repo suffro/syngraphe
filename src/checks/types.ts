@@ -7,7 +7,7 @@
  */
 
 import type { AgentIntegration, AgentIntegrationState } from "../agents/types.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import type { ContextInspection } from "../inspectors/context.ts";
 import type { ManagedFileState } from "../managed/file.ts";
 
@@ -35,7 +35,7 @@ export interface AgentSnapshot {
 }
 
 export interface CheckContext {
-  repository: Repository;
+  repository: ReadOnlyRepository;
   context: ContextInspection;
   agentsBootstrap: ManagedFileState;
   agents: AgentSnapshot[];

@@ -91,7 +91,7 @@ Before doing anything, Syngraphe decides what it is looking at:
 | **partial**            | Recognisably a repository context (or an empty directory), some files missing. |
 | **unsupported schema** | Manifest parses, declares this protocol, `schemaVersion` is not 1.        |
 | **invalid manifest**   | Manifest is not valid JSON, not an object, or has no numeric `schemaVersion`. |
-| **unrelated**          | The manifest declares a different `protocol` — or there is no `protocol` to go by and the directory contains only entries the standard layout does not define — or `.context` is not a directory at all. |
+| **unrelated**          | The manifest declares a different `protocol` — or there is no `protocol` to go by and the top level is not the standard layout: an unknown entry, a standard name of the wrong kind, or no standard document at all — or `.context` is not a directory at all. |
 
 Only **absent** and **partial** are written to. **Unrelated** aborts with an explanation and no
 assumptions; see [adopting an existing repository](/guides/adopting-an-existing-repository).

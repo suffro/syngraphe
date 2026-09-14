@@ -18,12 +18,37 @@ import {
   pathKind,
   readBinaryFile,
   readTextFile,
+  replaceTextFileIfUnchanged,
   resolveRealPath,
   writeTextFileAtomic,
 } from "./fs.ts";
 import { createGitClient, type GitClient } from "./git.ts";
 
-export class Repository {
+/**
+ * The part of `Repository` inspection and planning may use.
+ *
+ * `--dry-run` is honest only if planning cannot change the repository, so the
+ * type holds that line instead of convention: nothing here writes. Only
+ * `applyPlan` and the `run*` command roots receive a full `Repository`.
+ * `assertWritablePath` stays because it validates, it does not write.
+ */
+export interface ReadOnlyRepository {
+  readonly root: string;
+  readonly gitRoot: string;
+  readonly scope: string;
+  readonly git: GitClient;
+  resolve(relativePath: string): string;
+  relativize(absolutePath: string): string;
+  kind(relativePath: string): Promise<PathKind>;
+  size(relativePath: string): Promise<number>;
+  read(relativePath: string): Promise<string | null>;
+  readBytes(relativePath: string): Promise<Buffer | null>;
+  realPath(relativePath: string): Promise<string | null>;
+  list(relativePath: string): Promise<string[] | null>;
+  assertWritablePath(relativePath: string): Promise<void>;
+}
+
+export class Repository implements ReadOnlyRepository {
   readonly root: string;
   readonly git: GitClient;
   readonly gitRoot: string;
@@ -136,6 +161,9 @@ export class Repository {
    * neither the target nor any of its parent directories is a symlink.
    * Syngraphe refuses to write through links rather than trying to decide which
    * ones are safe.
+   *
+   * Nothing is compared first, so plan operations never use it: a patch goes
+   * through `replace` and a new file through `create`.
    */
   async write(relativePath: string, contents: string): Promise<void> {
     const absolute = this.resolve(relativePath);
@@ -156,6 +184,20 @@ export class Repository {
     const absolute = this.resolve(relativePath);
     await this.assertWritablePath(relativePath);
     return createTextFileExclusive(absolute, contents);
+  }
+
+  /**
+   * Replace a file only if it still contains exactly `expected`, under the same
+   * path-safety rules as `write`.
+   *
+   * Returns false, leaving the file as found, when it is missing or holds other
+   * content. The comparison is part of publishing, so an edit made after the
+   * caller's own check is kept rather than overwritten.
+   */
+  async replace(relativePath: string, expected: string, contents: string): Promise<boolean> {
+    const absolute = this.resolve(relativePath);
+    await this.assertWritablePath(relativePath);
+    return replaceTextFileIfUnchanged(absolute, Buffer.from(expected, "utf8"), contents);
   }
 
   async makeDirectory(relativePath: string): Promise<void> {

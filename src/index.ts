@@ -31,7 +31,7 @@ export {
   planToJson,
 } from "./core/plan-json.ts";
 export { renderPlan } from "./core/render-plan.ts";
-export { Repository } from "./core/repository.ts";
+export { type ReadOnlyRepository, Repository } from "./core/repository.ts";
 export { discoverScopes } from "./core/scopes.ts";
 export { inspectContext } from "./inspectors/context.ts";
 export type { ContextStats, DocumentSize, SizeTotals } from "./inspectors/stats.ts";

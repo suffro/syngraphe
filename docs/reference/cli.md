@@ -47,7 +47,7 @@ syngraphe init [--dry-run] [--json]
 
 | Option      | Effect                                                            |
 | ----------- | ----------------------------------------------------------------- |
-| `--dry-run` | Render the plan and exit without writing a file.                  |
+| `--dry-run` | Render the plan and exit, changing no repository contents or Git state. |
 | `--json`    | Emit the plan as versioned JSON; requires `--dry-run`.            |
 
 ### What it does
@@ -57,7 +57,9 @@ syngraphe init [--dry-run] [--json]
 3. Renders the plan as human text, or as the public JSON projection with `--dry-run --json`.
 4. Applies exactly that plan — unless `--dry-run` was passed, or the plan reported conflicts.
 
-`--dry-run` is not a simulation: it runs the same planner and stops before the apply step.
+`--dry-run` is not a simulation: it runs the same planner as the real command and performs no
+repository mutations — it does not modify repository contents or Git state. It stops before the
+apply step.
 JSON changes only the rendering. It never includes created contents or patch before/after text.
 
 ### Output
@@ -107,6 +109,8 @@ only the JSON payload and its final newline. See [plan JSON](/reference/json-out
 - **All-or-nothing.** If the plan contains conflicts, no operation is applied.
 - **Precondition-checked.** Every operation is verified against the current state before the first
   write, so a stale plan fails instead of half-applying.
+- **Byte-exact.** An existing `AGENTS.md` or `CLAUDE.md` that is not valid UTF-8 is a conflict
+  rather than a patch; a UTF-8 byte order mark is kept.
 
 ### Exit codes
 
@@ -153,7 +157,7 @@ Integrity
 | Section     | Contents                                                                                 |
 | ----------- | ---------------------------------------------------------------------------------------- |
 | `Context`   | Declared schema version and layout — or `status not initialized` when there is no context. |
-| `Knowledge` | Whether each core document exists; the number of `.md` files in `decisions/` and `history/` (excluding `README.md`). |
+| `Knowledge` | Whether each core document exists; the number of regular `.md` files in `decisions/` and `history/`, excluding `README.md` in any letter case, symlinks and directories. |
 | `Agents`    | The state of `AGENTS.md` and of every registered integration. See [agent integrations](/guides/agent-integrations). |
 | `Integrity` | Error and warning counts from the same checks `syngraphe check` runs.                     |
 
@@ -285,7 +289,8 @@ generic sections. No decision number, date or status is invented. The files stay
 The index is left for the author to curate; new files do not automatically join its always-relevant
 reading list.
 
-`list` prints top-level regular `.md` files in filename order, excluding `README.md` and symlinks.
+`list` prints top-level regular `.md` files in filename order, excluding `README.md` in any letter
+case, symlinks and directories — the same rule `status` counts with.
 `truth list` includes the core `architecture.md` and `conventions.md`; `state list` includes
 `current.md`. An empty list prints `No documents found.`
 
@@ -296,10 +301,12 @@ The archive keeps the original title. Refill current state afterwards; until the
 
 Every write uses the same plan/apply flow as `init`. A destination conflict, unsafe write path or
 stale source aborts before the first write. A new document is created exclusively: if another
-process takes the name first, the command fails with exit code `1` instead of overwriting it. Each
-write is atomic, but the two-file archive is not a filesystem transaction: an IO failure after
-creation may leave the archive and original state both present, preserving the source. `--dry-run`
-renders this same plan without applying it.
+process takes the name first, the command fails with exit code `1` instead of overwriting it.
+Current state is reset the same way: if `state/current.md` changes after the plan was built, the
+edit is kept and the command fails with exit code `1`. Each write is atomic (on filesystems without
+hard links, a crash can leave it partial), but the two-file archive is not a filesystem transaction:
+an IO failure after creation may leave the archive and original state both present, preserving the
+source. `--dry-run` renders this same plan without applying it.
 
 Add `--json` to a dry run for the independently versioned, content-free plan projection:
 

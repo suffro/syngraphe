@@ -7,7 +7,7 @@
  */
 
 import { emptyPlan, type Plan } from "../../core/plan.ts";
-import type { Repository } from "../../core/repository.ts";
+import type { ReadOnlyRepository } from "../../core/repository.ts";
 import { toLf } from "../../core/text.ts";
 import { inspectManagedFile, planManagedFile } from "../../managed/file.ts";
 import { AGENTS_FILE, CLAUDE_FILE, CLAUDE_MANAGED_BODY } from "../../templates/agents.ts";
@@ -32,7 +32,7 @@ export const claudeIntegration: AgentIntegration = {
     conflict: "CLAUDE005",
   },
 
-  async detect(repository: Repository): Promise<AgentDetection> {
+  async detect(repository: ReadOnlyRepository): Promise<AgentDetection> {
     const evidence: string[] = [];
     if ((await repository.kind(CLAUDE_FILE)) !== "missing") evidence.push(CLAUDE_FILE);
     if ((await repository.kind(CLAUDE_DIRECTORY)) === "directory") {
@@ -41,7 +41,7 @@ export const claudeIntegration: AgentIntegration = {
     return { present: evidence.length > 0, evidence };
   },
 
-  async inspect(repository: Repository): Promise<AgentIntegrationState> {
+  async inspect(repository: ReadOnlyRepository): Promise<AgentIntegrationState> {
     const kind = await repository.kind(CLAUDE_FILE);
 
     if (kind === "symlink") {
@@ -77,7 +77,7 @@ export const claudeIntegration: AgentIntegration = {
     };
   },
 
-  async planIntegration(repository: Repository): Promise<Plan> {
+  async planIntegration(repository: ReadOnlyRepository): Promise<Plan> {
     const state = await this.inspect(repository);
 
     if (state.status === "ready" || state.status === "native" || state.status === "skipped") {

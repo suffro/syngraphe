@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { readFile, writeFile } from "node:fs/promises";
 import { after, describe, it } from "node:test";
 import { planInitialization } from "../src/commands/init.ts";
 import { Repository } from "../src/core/repository.ts";
+import { inspectContext } from "../src/inspectors/context.ts";
 import { removeManagedBlock, validateManagedBlock } from "../src/managed/block.ts";
 import { AGENTS_MANAGED_BODY, CLAUDE_MANAGED_BODY } from "../src/templates/agents.ts";
 import { CONTEXT_PROTOCOL, CONTEXT_TEMPLATES, MANIFEST_PATH } from "../src/templates/context.ts";
@@ -226,6 +228,95 @@ describe("syngraphe init", () => {
     assert.equal(result.code, 0, result.stderr);
     assert.equal(await repo.read(".context/index.md"), custom);
     assert.equal(await repo.exists(MANIFEST_PATH), true);
+  });
+});
+
+describe("identifying a .context/ that declares no protocol", () => {
+  async function classify(setup: (repo: TempRepo) => Promise<void>): Promise<string> {
+    const repo = await repoWith();
+    await setup(repo);
+    return (await inspectContext(Repository.atRoot(repo.root))).status;
+  }
+
+  it("does not adopt a lone standard directory", async () => {
+    assert.equal(await classify((repo) => repo.makeDirectory(".context/truth")), "unrelated");
+    assert.equal(
+      await classify((repo) => repo.write(".context/truth/notes.txt", "data\n")),
+      "unrelated",
+    );
+    assert.equal(
+      await classify(async (repo) => {
+        await repo.write(MANIFEST_PATH, '{ "schemaVersion": 1, "layout": "standard" }\n');
+        await repo.makeDirectory(".context/truth");
+      }),
+      "unrelated",
+    );
+  });
+
+  it("does not adopt standard names of the wrong kind, or unknown entries beside them", async () => {
+    assert.equal(
+      await classify(async (repo) => {
+        await repo.makeDirectory(".context/index.md");
+        await repo.write(".context/truth/architecture.md", "# Architecture\n");
+      }),
+      "unrelated",
+    );
+    assert.equal(
+      await classify(async (repo) => {
+        await repo.write(".context/index.md", "# Index\n");
+        await repo.write(".context/notes.txt", "data\n");
+      }),
+      "unrelated",
+    );
+  });
+
+  it("recognises standard files in the standard layout, and an empty directory", async () => {
+    assert.equal(
+      await classify(async (repo) => {
+        await repo.write(".context/index.md", "# Index\n");
+        await repo.write(".context/truth/architecture.md", "# Architecture\n");
+      }),
+      "partial",
+    );
+    assert.equal(await classify((repo) => repo.makeDirectory(".context")), "partial");
+  });
+});
+
+describe("syngraphe init on bytes it cannot decode exactly", () => {
+  // "Caf" followed by a Latin-1 é: not valid UTF-8, so a lossy decode would
+  // publish U+FFFD in its place.
+  const latin1 = Buffer.concat([Buffer.from("# Project\n\nCaf"), Buffer.from([0xe9, 0x0a])]);
+
+  for (const args of [["init"], ["init", "--dry-run"]]) {
+    for (const file of ["AGENTS.md", "CLAUDE.md"]) {
+      it(`${args.join(" ")} refuses a non-UTF-8 ${file} and leaves its bytes alone`, async () => {
+        const repo = await repoWith();
+        await writeFile(repo.path(file), latin1);
+
+        const result = await runCli(repo, args);
+
+        assert.equal(result.code, 1, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`CONFLICTS[\\s\\S]*${file.replace(".", "\\.")} must be valid UTF-8`),
+        );
+        assert.deepEqual(await readFile(repo.path(file)), latin1);
+        assert.deepEqual([...(await repo.snapshot()).keys()], [file]);
+      });
+    }
+  }
+
+  it("patches a UTF-8 file that starts with a byte order mark and keeps the mark", async () => {
+    const original = `${String.fromCodePoint(0xfeff)}# Project\n\nHouse rules.\n`;
+    const repo = await repoWith({ "AGENTS.md": original });
+
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+
+    const bytes = await readFile(repo.path("AGENTS.md"));
+    assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf]);
+    const patched = bytes.toString("utf8");
+    assert.equal(validateManagedBlock(patched, AGENTS_MANAGED_BODY).status, "valid");
+    assert.equal(removeManagedBlock(patched), original);
   });
 });
 

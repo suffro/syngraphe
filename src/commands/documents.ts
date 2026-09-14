@@ -6,8 +6,10 @@ import {
   EXIT_USAGE,
   type ExitCode,
 } from "../core/exit-codes.ts";
+import { decodeUtf8Exact } from "../core/fs.ts";
 import { applyPlan, emptyPlan, type Plan } from "../core/plan.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository, Repository } from "../core/repository.ts";
+import { listDocumentFiles } from "../inspectors/context.ts";
 import { requireContext } from "../inspectors/usable-context.ts";
 import { CONTEXT_TEMPLATES, CURRENT_STATE_PATH } from "../templates/context.ts";
 import {
@@ -33,7 +35,7 @@ function documentName(name: string): string {
 }
 
 export async function planDocument(
-  repository: Repository,
+  repository: ReadOnlyRepository,
   category: DocumentCategory,
   name: string,
   options: { title?: string; archive?: boolean } = {},
@@ -74,8 +76,8 @@ export async function planDocument(
     await repository.assertWritablePath(CURRENT_STATE_PATH);
     const raw = await repository.readBytes(CURRENT_STATE_PATH);
     if (raw === null) throw new SyngrapheError("Current state is missing.", EXIT_INTEGRITY_FAILURE);
-    const current = raw.toString("utf8");
-    if (!Buffer.from(current, "utf8").equals(raw)) {
+    const current = decodeUtf8Exact(raw);
+    if (current === null) {
       throw new SyngrapheError(
         "Current state must be valid UTF-8 to archive without changing its bytes.",
         EXIT_INTEGRITY_FAILURE,
@@ -97,18 +99,11 @@ export async function planDocument(
 }
 
 export async function listDocuments(
-  repository: Repository,
+  repository: ReadOnlyRepository,
   category: DocumentCategory,
 ): Promise<string[]> {
   await requireContext(repository);
-  const directory = DOCUMENT_DIRECTORIES[category];
-  const result: string[] = [];
-  for (const entry of (await repository.list(directory)) ?? []) {
-    if (!entry.endsWith(".md") || entry.toLowerCase() === "readme.md") continue;
-    const file = `${directory}/${entry}`;
-    if ((await repository.kind(file)) === "file") result.push(file);
-  }
-  return result;
+  return listDocumentFiles(repository, DOCUMENT_DIRECTORIES[category]);
 }
 
 export async function runDocument(options: {

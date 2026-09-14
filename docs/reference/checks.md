@@ -59,7 +59,7 @@ after internal implementation details.
 | `AGENT002` | error    | The block was modified manually. Syngraphe will not overwrite it. |
 | `AGENT003` | error    | The file contains more than one Syngraphe block.               |
 | `AGENT004` | error    | The markers are unbalanced. The finding carries the line number. |
-| `AGENT005` | error    | `AGENTS.md` cannot be managed safely — it is a directory, a symlink, or declares an unknown block version. |
+| `AGENT005` | error    | `AGENTS.md` cannot be managed safely — it is a directory, a symlink, not valid UTF-8, or declares an unknown block version. |
 
 These are errors rather than warnings because `.context/` without a bootstrap is context nothing
 will read.
@@ -83,7 +83,9 @@ all is reported for a repository that shows no sign of using Claude.
 | --------- | -------- | --------------------------------------------------------------------- |
 | `LINK001` | error    | A context document references a local path that does not exist. The finding carries the file and the line. |
 
-Markdown links resolve relative to the document and are checked whatever they point at. Inline code
+Markdown links resolve relative to the document and are checked whatever they point at. A reference
+through a symlink — the file itself or a directory on the way — resolves only when the link's target
+exists inside the Git repository; a broken link, or one leading outside, is reported. Inline code
 is prose, so only `.md` references are checked — `` `truth/architecture.md` `` — and they may
 resolve relative to the document, from the repository root, or from `.context/`. A directory named
 in inline code is not treated as a reference. Fenced code blocks, anchors and external URLs are

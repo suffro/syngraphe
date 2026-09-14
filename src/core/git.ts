@@ -19,6 +19,12 @@ export interface GitTimestamp {
   epochMs: number;
 }
 
+/**
+ * Read-only by contract. Planners and `--dry-run` reach this client through
+ * `ReadOnlyRepository`, so it must never gain a command that changes the index,
+ * refs, config, objects or worktree — including as a side effect, the way a
+ * plain `git status` may refresh the index.
+ */
 export interface GitClient {
   root(): Promise<string | null>;
   lastModified(relativePath: string): Promise<GitTimestamp | null>;

@@ -2,10 +2,10 @@ import path from "node:path";
 import { SyngrapheError } from "./errors.ts";
 import { EXIT_USAGE } from "./exit-codes.ts";
 import { listGitFiles } from "./git.ts";
-import { Repository } from "./repository.ts";
+import { type ReadOnlyRepository, Repository } from "./repository.ts";
 
 /** Discover nonempty contexts from tracked and unignored files, never traversing dependencies. */
-export async function discoverScopes(repository: Repository): Promise<Repository[]> {
+export async function discoverScopes(repository: ReadOnlyRepository): Promise<Repository[]> {
   const root = Repository.atRoot(repository.gitRoot);
   const names = new Set<string>();
   if ((await root.kind(".context")) !== "missing") names.add(".");
@@ -38,14 +38,28 @@ export async function selectRepositories(
   return [await root.inScope(options.scope ?? ".")];
 }
 
-/** Resolve a document reference within the Git tree, including shared parent context. */
-export async function referenceExists(repository: Repository, candidate: string): Promise<boolean> {
+/**
+ * Resolve a document reference within the Git tree, including shared parent context.
+ *
+ * Links are followed only to find out where a reference really leads: a broken
+ * one, or one whose target is outside the Git root, does not resolve.
+ */
+export async function referenceExists(
+  repository: ReadOnlyRepository,
+  candidate: string,
+): Promise<boolean> {
   const root = Repository.atRoot(repository.gitRoot);
   const relative = path.relative(root.root, path.resolve(repository.root, candidate));
-  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-    return false;
-  }
-  return (await root.kind(relative)) !== "missing";
+  if (escapes(relative)) return false;
+  // realpath follows every link on the way, final or intermediate, and fails on a broken one.
+  const target = await root.realPath(relative);
+  const realRoot = await root.realPath(".");
+  if (target === null || realRoot === null) return false;
+  return !escapes(path.relative(realRoot, target));
+}
+
+function escapes(relative: string): boolean {
+  return relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative);
 }
 
 /** Select exactly one scope for a mutating command. */

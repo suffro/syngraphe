@@ -1,11 +1,11 @@
 import { SyngrapheError } from "../core/errors.ts";
 import { EXIT_INTEGRITY_FAILURE, EXIT_UNSUPPORTED_SCHEMA } from "../core/exit-codes.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import { REQUIRED_CONTEXT_FILES } from "../templates/context.ts";
 import { inspectContext } from "./context.ts";
 
 /** Document operations and statistics require an initialized, supported context. */
-export async function requireContext(repository: Repository): Promise<void> {
+export async function requireContext(repository: ReadOnlyRepository): Promise<void> {
   if ((await repository.kind(".context")) === "directory") {
     for (const file of REQUIRED_CONTEXT_FILES) await repository.assertWritablePath(file);
   }

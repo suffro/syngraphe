@@ -97,6 +97,20 @@ of a work session, and always in the same commit as the work it describes. `syng
 (`STATE001`) when this file has not changed while the repository has, and warns (`STATE002`) when it
 is nothing but headings.
 
+## Plans for work in progress
+
+A multi-step plan is state: true while the work runs, misleading once it is done. It needs no
+category of its own. Give it a file beside `current.md` and link to it from there:
+
+```bash
+syngraphe state new cache-migration --title "Cache migration plan"
+```
+
+When the work is finished or abandoned, move the plan to `history/` — for example with
+`git mv .context/state/cache-migration.md .context/history/` — and drop the link from `current.md`.
+Any lasting choice the plan made, such as a library picked or an approach rejected, becomes a record
+in `decisions/`, where it outlives the plan.
+
 ## `decisions/`
 
 One Markdown file per significant decision. Not every commit deserves one — the test is whether a
@@ -126,9 +140,9 @@ The reasoning, including the constraint that forced it.
 The rejected alternatives are the most valuable section and the one most often left out. Without it,
 the next person re-litigates the decision from scratch — and frequently reverses it.
 
-Name files so they sort: `0001-....md`, `0002-....md`. Syngraphe counts `.md` files in the directory
-(excluding `README.md`) for `syngraphe status`; nothing else about the naming is enforced, and no
-ADR workflow is imposed.
+Name files so they sort: `0001-....md`, `0002-....md`. Syngraphe counts regular `.md` files in the
+directory (excluding `README.md`) for `syngraphe status`; nothing else about the naming is enforced,
+and no ADR workflow is imposed.
 
 ## `history/`
 

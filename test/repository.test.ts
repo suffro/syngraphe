@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
+import { link, readFile, writeFile } from "node:fs/promises";
 import { after, describe, it } from "node:test";
-import { createTextFileExclusive } from "../src/core/fs.ts";
+import { SyngrapheError } from "../src/core/errors.ts";
+import { EXIT_INTEGRITY_FAILURE } from "../src/core/exit-codes.ts";
+import { createTextFileExclusive, replaceTextFileIfUnchanged } from "../src/core/fs.ts";
 import { Repository } from "../src/core/repository.ts";
 import { TempRepo } from "./helpers/repo.ts";
 
@@ -115,5 +118,154 @@ describe("Repository exclusive creation", () => {
     assert.equal(results.filter(Boolean).length, 1);
     assert.equal(await repo.read("fallback.md"), writers[results.indexOf(true)]);
     assert.deepEqual([...(await repo.snapshot()).keys()], ["fallback.md"]);
+  });
+});
+
+describe("Repository verified replacement", () => {
+  const noHardLinks = async (): Promise<void> => {
+    throw Object.assign(new Error("hard links unsupported"), { code: "EPERM" });
+  };
+
+  /** A link seam that lets another writer claim the path just before publication. */
+  function recreatedBefore(publish: (existingPath: string, newPath: string) => Promise<void>) {
+    return async (existingPath: string, newPath: string): Promise<void> => {
+      await writeFile(newPath, "recreated\n", { flag: "wx" });
+      await publish(existingPath, newPath);
+    };
+  }
+
+  function preservedAside(error: unknown): boolean {
+    return (
+      error instanceof SyngrapheError &&
+      error.exitCode === EXIT_INTEGRITY_FAILURE &&
+      /preserved at .*\.syngraphe-[0-9a-f]+\.aside\b/.test(error.details ?? "")
+    );
+  }
+
+  it("replaces a file that still holds the expected content", async () => {
+    const { repo, repository: target } = await repository();
+    await repo.write("notes.md", "before\n");
+
+    assert.equal(await target.replace("notes.md", "before\n", "after\n"), true);
+
+    assert.equal(await repo.read("notes.md"), "after\n");
+    assert.deepEqual([...(await repo.snapshot()).keys()], ["notes.md"]);
+  });
+
+  it("leaves a changed or missing file as found", async () => {
+    const { repo, repository: target } = await repository();
+    await repo.write("notes.md", "edited by someone else\n");
+
+    assert.equal(await target.replace("notes.md", "before\n", "after\n"), false);
+    assert.equal(await target.replace("gone.md", "before\n", "after\n"), false);
+
+    assert.equal(await repo.read("notes.md"), "edited by someone else\n");
+    assert.deepEqual([...(await repo.snapshot()).keys()], ["notes.md"]);
+  });
+
+  it("compares bytes rather than decoded text", async () => {
+    const { repo, repository: target } = await repository();
+    const invalid = Buffer.from([0x41, 0xff]);
+    await writeFile(repo.path("notes.md"), invalid);
+
+    // 0xFF decodes to U+FFFD, so a text comparison would call these equal.
+    const lossy = `A${String.fromCodePoint(0xfffd)}`;
+    assert.equal(await target.replace("notes.md", lossy, "after\n"), false);
+    assert.deepEqual(await readFile(repo.path("notes.md")), invalid);
+  });
+
+  it("refuses to replace through a symlink", async () => {
+    const { repo, repository: target } = await repository();
+    await repo.write("real.md", "original\n");
+    await repo.link("real.md", "linked.md");
+
+    await assert.rejects(
+      () => target.replace("linked.md", "original\n", "replaced\n"),
+      /Refusing to write through a symlink/,
+    );
+    assert.equal(await repo.read("real.md"), "original\n");
+  });
+
+  it("gives exactly one winner when many replacements expect the same content", async () => {
+    const { repo, repository: target } = await repository();
+    await repo.write("notes.md", "before\n");
+    const writers = Array.from({ length: 16 }, (_, index) => `writer ${index}\n`);
+
+    const results = await Promise.all(
+      writers.map((body) => target.replace("notes.md", "before\n", body)),
+    );
+
+    assert.equal(results.filter(Boolean).length, 1);
+    assert.equal(await repo.read("notes.md"), writers[results.indexOf(true)]);
+    assert.deepEqual([...(await repo.snapshot()).keys()], ["notes.md"]);
+  });
+
+  for (const [label, current] of [
+    ["publishing a verified file", "before\n"],
+    ["restoring a changed file", "edited\n"],
+  ] as const) {
+    it(`keeps both files when the path is recreated while ${label}`, async () => {
+      const { repo } = await repository();
+      await repo.write("notes.md", current);
+
+      await assert.rejects(
+        () =>
+          replaceTextFileIfUnchanged(
+            repo.path("notes.md"),
+            Buffer.from("before\n"),
+            "after\n",
+            recreatedBefore(link),
+          ),
+        preservedAside,
+      );
+
+      const files = await repo.snapshot();
+      assert.equal(files.get("notes.md"), "recreated\n");
+      const aside = [...files.keys()].filter((file) => file.endsWith(".aside"));
+      assert.equal(aside.length, 1);
+      assert.equal(files.get(aside[0] ?? ""), current);
+      assert.deepEqual(
+        [...files.keys()].filter((file) => file.endsWith(".tmp")),
+        [],
+      );
+    });
+  }
+
+  it("verifies and restores on filesystems without hard links", async () => {
+    const { repo } = await repository();
+    await repo.write("notes.md", "before\n");
+    const file = repo.path("notes.md");
+
+    assert.equal(
+      await replaceTextFileIfUnchanged(file, Buffer.from("before\n"), "after\n", noHardLinks),
+      true,
+    );
+    assert.equal(
+      await replaceTextFileIfUnchanged(file, Buffer.from("before\n"), "again\n", noHardLinks),
+      false,
+    );
+
+    assert.equal(await repo.read("notes.md"), "after\n");
+    assert.deepEqual([...(await repo.snapshot()).keys()], ["notes.md"]);
+  });
+
+  it("keeps both files without hard links when the path is recreated", async () => {
+    const { repo } = await repository();
+    await repo.write("notes.md", "before\n");
+
+    await assert.rejects(
+      () =>
+        replaceTextFileIfUnchanged(
+          repo.path("notes.md"),
+          Buffer.from("before\n"),
+          "after\n",
+          recreatedBefore(noHardLinks),
+        ),
+      preservedAside,
+    );
+
+    const files = await repo.snapshot();
+    assert.equal(files.get("notes.md"), "recreated\n");
+    assert.equal([...files.values()].filter((contents) => contents === "before\n").length, 1);
   });
 });

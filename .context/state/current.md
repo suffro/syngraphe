@@ -11,6 +11,23 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Recent relevant changes
 
+- The write surface hardening plan is complete; see `history/write-surface-hardening.md`. Patches
+  are verified in the publish step: `Repository.replace` renames the file aside, compares the moved
+  bytes and only then links the new file into place, so a concurrent edit is kept and the apply
+  fails (`decisions/0006-patch-verification-in-the-publish-step.md`). Managed files are patched only
+  from exact UTF-8 bytes; otherwise `init` reports a conflict and `check` reports `AGENT005` or
+  `CLAUDE005`. Inspectors, planners, integrations and the check context take `ReadOnlyRepository`,
+  and `test/dry-run.test.ts` compares the working tree and Git state around every mutating dry run.
+  `status` counts only regular Markdown files, `LINK001` rejects broken or escaping symlinks, and a
+  `.context/` without a declared protocol is identified only by its complete standard shape. Every
+  new guard was observed failing first: against the blind rename, the lossy decode, and temporary
+  planner-write and `git add` probes that were then removed.
+- Latest local verification, on macOS: 187 tests passed (27 suites), plus typecheck, lint, CLI
+  build, documentation build, `action:build` with `action:check` reporting the bundle matches its
+  sources, and temporary-repository checks that `init` leaves a `0xFF` `AGENTS.md` byte-identical
+  and `state archive --dry-run` leaves `git status` and the `.git/index` hash unchanged. Not
+  exercised locally: Windows rename-while-open semantics and filesystems without hard links, which
+  only the `linkFile` test seam covers. Hosted CI has not run on these changes.
 - `create` operations are now exclusive at the filesystem level. The apply preflight could not keep
   two concurrent runs from creating the same missing path, because `Repository.write` published
   every operation with a rename: both passed the `missing` check and the second rename replaced the
@@ -46,7 +63,7 @@ These tags are independent of the npm CLI; package release metadata has not been
   selection; default root behavior is preserved. See `decisions/0004-explicit-scopes-and-context-tools.md`.
 - Documentation covers the four-category document lifecycle, independently versioned plan/check/stats
   JSON, and explicit monorepo discovery.
-- Latest local verification on macOS with Node 26.4: all 151 tests passed (15 Action tests), including
+- Verification at the Action release, on macOS with Node 26.4: all 151 tests passed (15 Action tests), including
   truth creation/listing/concurrency and the plan JSON contract. Typecheck, lint, CLI/Action builds,
   Action bundle synchronization, documentation build, clean-snapshot repository `check --all`, and
   representative temporary-repository CLI exercises passed. Hosted CI run `34542006024` passed on
@@ -94,9 +111,15 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Next
 
-- Execute the approved write surface hardening plan in `state/write-surface-hardening.md`: patch
-  TOCTOU race, exact UTF-8 for patched files, `ReadOnlyRepository` and a shared dry-run invariant
-  test, plus the minor `status`, `LINK001`, fallback-wording and `.context/` identity fixes.
+- Run hosted CI on Ubuntu, macOS and Windows for the write surface hardening changes; Windows
+  rename semantics and the no-hard-link fallback were not exercised locally.
+- Carry the user-visible changes into the next CLI release notes. The repository keeps no changelog
+  file, so none was invented: `init` refuses a non-UTF-8 `AGENTS.md` or `CLAUDE.md` and `check`
+  reports it; a patch fails instead of overwriting an edit made after planning; `status` no longer
+  counts symlinks, directories or a `readme.md` in another letter case; `LINK001` reports broken and
+  out-of-repository symlinked references; a `.context/` without a declared protocol is `unrelated`
+  unless its whole top level is the standard layout with at least one standard document. Decide
+  whether to start a changelog.
 - Complete Marketplace publication in the GitHub release editor for `action-v1.0.0`, then verify
   the public listing. Release URL: https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0
 

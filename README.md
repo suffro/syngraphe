@@ -65,7 +65,7 @@ documentation uses the full name.
 
 ```bash
 syngraphe init            # create the repository context and agent bootstrap
-syngraphe init --dry-run  # show exactly what would change, write nothing
+syngraphe init --dry-run  # show exactly what would change; no repository or Git changes
 syngraphe init --dry-run --json  # same plan as stable, content-free JSON
 
 syngraphe status          # summarize the repository context
@@ -99,8 +99,8 @@ does not invent a semantic structure for repository facts. `state archive <name>
 state into history before resetting it; omitting `--dry-run` applies the plan.
 
 Every mutating command accepts `--json` only together with `--dry-run`. This emits the same plan as
-stable JSON and never writes. The public projection includes operation paths and summaries, but no
-created contents or patch before/after text.
+stable JSON and performs no repository mutations. The public projection includes operation paths
+and summaries, but no created contents or patch before/after text.
 
 `stats` estimates Markdown tokens as `ceil(UTF-8 bytes / 4)` per file. It separates history from
 active content, flags documents over 2,000 estimated tokens and exact duplicates, and compares the
@@ -158,16 +158,21 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
   ```
 
 - Everything outside those markers is user-owned and is preserved byte for byte, including line
-  endings and a missing final newline.
+  endings and a missing final newline. A file that is not valid UTF-8 is reported as a conflict
+  instead of patched, because its bytes could not be kept exactly.
 - A managed block edited by hand is reported as drift, never silently overwritten.
 - Duplicate or malformed blocks are reported, never guessed at.
 - Initialization is idempotent: running it twice changes nothing the second time.
-- Every modifying command builds a plan, renders it, and applies exactly that plan. `--dry-run` uses
-  the same plan and stops before writing.
+- Every modifying command builds a plan, renders it, and applies exactly that plan. `--dry-run` runs
+  the same planner as the real command and performs no repository mutations: it does not modify
+  repository contents or Git state.
 - Writes are complete-file writes: the whole file is staged in a temporary file beside its
-  destination, so an interrupted run cannot leave a half-written file. An update is then renamed
-  into place; a new document is instead published with an operation that fails if the destination
-  already exists, so two Syngraphe runs creating the same file cannot overwrite each other.
+  destination, so an interrupted run cannot leave a half-written file. A new document is published
+  with an operation that fails if the destination already exists, so two Syngraphe runs creating the
+  same file cannot overwrite each other. A patched file is first moved aside and compared with the
+  content the plan expects, so an edit made after the plan was checked is kept and the run fails.
+  On filesystems without hard links, publication stays exclusive, but a crash during it can leave
+  the new file partial.
 - Syngraphe never writes outside the Git root and never writes through a symlink.
 - An existing `.context/` that is not a Syngraphe context is never touched: the command aborts and
   explains the conflict.

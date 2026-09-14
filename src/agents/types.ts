@@ -11,7 +11,7 @@
  */
 
 import type { Plan } from "../core/plan.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import type { ManagedFileStatus } from "../managed/file.ts";
 
 export interface AgentDetection {
@@ -55,7 +55,7 @@ export interface AgentIntegration {
    */
   findingCodes?: AgentFindingCodes;
 
-  detect(repository: Repository): Promise<AgentDetection>;
-  inspect(repository: Repository): Promise<AgentIntegrationState>;
-  planIntegration(repository: Repository): Promise<Plan>;
+  detect(repository: ReadOnlyRepository): Promise<AgentDetection>;
+  inspect(repository: ReadOnlyRepository): Promise<AgentIntegrationState>;
+  planIntegration(repository: ReadOnlyRepository): Promise<Plan>;
 }

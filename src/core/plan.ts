@@ -4,7 +4,8 @@
  * Every command that modifies the repository builds a plan first, renders it,
  * and only then applies exactly that plan. Inspection and writing never happen
  * inside the same function, which is what makes `--dry-run` honest: it runs the
- * same planner and stops before `applyPlan`.
+ * same planner and stops before `applyPlan`. Planners receive a
+ * `ReadOnlyRepository`, so the compiler, not convention, keeps them from writing.
  */
 
 import { SyngrapheError } from "./errors.ts";
@@ -57,17 +58,26 @@ function destinationTaken(path: string): SyngrapheError {
   );
 }
 
+function fileChanged(path: string): SyngrapheError {
+  return new SyngrapheError(
+    `Cannot patch ${path}: the file changed since the plan was built.`,
+    EXIT_INTEGRITY_FAILURE,
+    "Re-run the command to build a fresh plan.",
+  );
+}
+
 /**
  * Apply a plan.
  *
  * All preconditions are verified before the first write, so a plan built
  * against stale state fails without leaving the repository half modified.
  *
- * The preflight is not what keeps `create` exclusive: between the check and the
- * write, another process can take the destination. The two intents are
- * therefore published differently — `create` claims its path with an operation
- * that fails when the path is taken, `patch` replaces content it has already
- * compared. The preflight stays because it turns the ordinary stale-plan case
+ * The preflight is not what makes publication safe: between the check and the
+ * write, another process can take a destination or edit a file. Each operation
+ * is therefore verified again by the step that publishes it. `create` claims
+ * its path with an operation that fails when the path is taken; `patch` moves
+ * the file aside before comparing it, so the bytes it compares are the bytes it
+ * replaces. The preflight stays because it turns the ordinary stale-plan case
  * into a failure before anything is written at all.
  */
 export async function applyPlan(repository: Repository, plan: Plan): Promise<void> {
@@ -84,20 +94,19 @@ export async function applyPlan(repository: Repository, plan: Plan): Promise<voi
       const kind = await repository.kind(operation.path);
       if (kind !== "missing") throw destinationTaken(operation.path);
     } else {
-      const current = await repository.read(operation.path);
-      if (current !== operation.before) {
-        throw new SyngrapheError(
-          `Cannot patch ${operation.path}: the file changed since the plan was built.`,
-          EXIT_INTEGRITY_FAILURE,
-          "Re-run the command to build a fresh plan.",
-        );
+      // Bytes, not decoded text: a lossy decode can make two different files equal.
+      const current = await repository.readBytes(operation.path);
+      if (current === null || !current.equals(Buffer.from(operation.before, "utf8"))) {
+        throw fileChanged(operation.path);
       }
     }
   }
 
   for (const operation of plan.operations) {
     if (operation.type === "patch") {
-      await repository.write(operation.path, operation.after);
+      if (!(await repository.replace(operation.path, operation.before, operation.after))) {
+        throw fileChanged(operation.path);
+      }
       continue;
     }
     if (!(await repository.create(operation.path, operation.contents))) {

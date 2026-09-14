@@ -182,3 +182,39 @@ describe("concurrent applies of the same create", () => {
     assert.notEqual(await repo.read(CURRENT_STATE_PATH), current);
   });
 });
+
+/** Temporary files a publish stages or moves aside, which must never outlive it. */
+function leftovers(snapshot: Map<string, string>): string[] {
+  return [...snapshot.keys()].filter((file) => /(^|\/)\.syngraphe-/.test(file));
+}
+
+describe("a patch whose file changes after the preflight", () => {
+  it("keeps the concurrent edit and fails with an integrity error", async () => {
+    const repo = await initialized();
+    const original = "# Current State\n\nWork worth keeping.\n";
+    await repo.write(CURRENT_STATE_PATH, original);
+    const repository = Repository.atRoot(repo.root);
+    const plan = await planDocument(repository, "history", "done", { archive: true });
+
+    // The preflight has already compared the file when `replace` is reached, so
+    // this is the window a comparison followed by a blind rename leaves open.
+    const concurrent = "# Current State\n\nWritten while the archive was being applied.\n";
+    const replace = repository.replace.bind(repository);
+    repository.replace = async (path: string, expected: string, contents: string) => {
+      await repo.write(path, concurrent);
+      return replace(path, expected, contents);
+    };
+
+    await assert.rejects(
+      () => applyPlan(repository, plan),
+      (error: unknown) =>
+        error instanceof SyngrapheError &&
+        /changed since the plan was built/.test(error.message) &&
+        error.exitCode === EXIT_INTEGRITY_FAILURE,
+    );
+    assert.equal(await repo.read(CURRENT_STATE_PATH), concurrent);
+    // History is published first, and holds the state the plan compared.
+    assert.equal(await repo.read(".context/history/done.md"), original);
+    assert.deepEqual(leftovers(await repo.snapshot()), []);
+  });
+});

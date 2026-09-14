@@ -8,7 +8,7 @@
 
 import { inspectAgentsBootstrap } from "../agents/agents-md.ts";
 import { agentIntegrations } from "../agents/registry.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import { inspectContext } from "../inspectors/context.ts";
 import type { AgentSnapshot, CheckContext } from "./types.ts";
 
@@ -17,7 +17,7 @@ export interface CheckContextOptions {
 }
 
 export async function createCheckContext(
-  repository: Repository,
+  repository: ReadOnlyRepository,
   options: CheckContextOptions = {},
 ): Promise<CheckContext> {
   const context = await inspectContext(repository);

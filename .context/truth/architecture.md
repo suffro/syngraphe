@@ -84,12 +84,24 @@ operations are not a filesystem transaction.
 unchanged entries, and conflicts are public, while created contents and patch before/after states
 are not. `PLAN_JSON_VERSION` versions this shape independently from check, stats, and all-scope JSON.
 
-`applyPlan` publishes the two operation types differently. A `create` goes through
+`applyPlan` verifies each operation inside the step that publishes it. A `create` goes through
 `Repository.create`, which claims the destination exclusively and reports it taken rather than
-replacing it; the preflight `kind()` check stays, but it is what makes a stale plan fail before the
-first write, not what keeps creation exclusive. A `patch` still goes through `Repository.write`
-after its expected content matched. `init`, the four `<category> new` commands and `state archive`
-all inherit this from the shared plan/apply core.
+replacing it. A `patch` goes through `Repository.replace`, which renames the file aside, compares the
+moved bytes with `before`, then links the new file into place or the original back; a mismatch is
+the same "changed since the plan was built" integrity failure the preflight raises. The preflight
+checks stay, but they make a stale plan fail before the first write; they are not what makes
+publication safe. `Repository.write` remains a blind replacement, used only for files nobody else
+writes (the Action's report). `init`, the four `<category> new` commands and `state archive` all
+inherit this from the shared plan/apply core. See
+`../decisions/0006-patch-verification-in-the-publish-step.md`.
+
+Inspectors, planners, agent integrations and the check context receive `ReadOnlyRepository`, which
+has no writing method; only `applyPlan` and the `run*` command roots receive `Repository`, and
+`GitClient` exposes reads only. `test/dry-run.test.ts` holds the dry-run invariant for every mutating
+command against both the working tree and Git state.
+
+A patch is computed from a file's exact bytes: `decodeUtf8Exact` returns text only when it encodes
+back to the same bytes, and a managed file that fails it is a conflict rather than a patch.
 
 `inspectors/stats.ts` counts regular files and UTF-8 bytes, estimates Markdown tokens per file as
 ceil(bytes/4), separates history, and reports large documents/exact duplicates. Budget and bloat
@@ -121,8 +133,12 @@ stay silent rather than guessing.
 - Initialization is idempotent, and drift is reported rather than overwritten.
 - No writes outside the Git root, and never through a symlink.
 - Writes are complete-file writes: the file is staged in full beside its destination, then published.
-  Updates are published with a rename; creates are published with a link, which fails when the
-  destination exists, so concurrent creates cannot overwrite each other.
+  Creates are published with a link, which fails when the destination exists, so concurrent creates
+  cannot overwrite each other. Patches move the original aside and compare it before linking, so a
+  concurrent edit is kept. Without hard links both fall back to an exclusive create, which a crash
+  can leave partial.
+- Existing files are patched only when their bytes decode exactly as UTF-8.
+- Without a manifest `protocol`, `.context/` is identified only by its complete standard shape.
 - Finding codes, exit codes, each independently versioned JSON shape and the context schema are
   stable contracts.
 - The repository must stay fully usable if Syngraphe disappears: Syngraphe implements the

@@ -6,10 +6,10 @@
  * path, the expected body and a description of the change.
  */
 
-import type { PathKind } from "../core/fs.ts";
+import { decodeUtf8Exact, type PathKind } from "../core/fs.ts";
 import type { Plan } from "../core/plan.ts";
 import { emptyPlan } from "../core/plan.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import {
   insertManagedBlock,
   type ManagedBlockState,
@@ -37,7 +37,7 @@ export interface ManagedFileState {
 
 /** Read a file and classify its managed block against the expected body. */
 export async function inspectManagedFile(
-  repository: Repository,
+  repository: ReadOnlyRepository,
   path: string,
   expectedBody: string,
 ): Promise<ManagedFileState> {
@@ -60,9 +60,23 @@ export async function inspectManagedFile(
     );
   }
 
-  const content = await repository.read(path);
-  if (content === null) {
+  const bytes = await repository.readBytes(path);
+  if (bytes === null) {
     return state(path, kind, null, "conflict", null, `${path} could not be read.`, null);
+  }
+  // Every patch starts from this content, so it has to be the file's exact
+  // bytes: preserving user text byte for byte is not possible otherwise.
+  const content = decodeUtf8Exact(bytes);
+  if (content === null) {
+    return state(
+      path,
+      kind,
+      null,
+      "conflict",
+      null,
+      `${path} must be valid UTF-8 to patch without changing its bytes.`,
+      "Convert the file to UTF-8 and re-run; Syngraphe will not rewrite bytes it cannot decode.",
+    );
   }
 
   const block = validateManagedBlock(content, expectedBody);

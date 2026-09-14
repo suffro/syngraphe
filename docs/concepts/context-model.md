@@ -61,6 +61,11 @@ that it can go stale **visibly**, without dragging anything else down with it. `
 watches this file specifically, warning when it has stopped moving while the repository has not
 (`STATE001`) and when it contains only headings (`STATE002`).
 
+A plan for work in progress is state too: true while the work runs, misleading once it is done.
+`syngraphe state new <name>` gives it a file beside `current.md`, which links to it while the work
+lasts. A finished or abandoned plan moves to `history/`, and the choices it produced are recorded in
+`decisions/`, where they outlive it. Plans need no category of their own.
+
 ## Decisions
 
 Why things are the way they are, one Markdown file per decision.

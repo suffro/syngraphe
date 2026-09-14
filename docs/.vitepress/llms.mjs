@@ -104,6 +104,7 @@ function header(version) {
     "",
     `- Version ${version}, context schema version 1. Apache-2.0, vendor-neutral, open source.`,
     "- Commands: `syngraphe init` (with `--dry-run`), `syngraphe status`, `syngraphe check` (with `--json` and `--strict`). The binary is also installed as `syg`.",
+    "- `--dry-run` runs the same planner as the real command and performs no repository mutations: it does not modify repository contents or Git state.",
     "- The context is committed Markdown, split by lifecycle: `truth/` (architecture, conventions), `state/` (current work), `decisions/`, `history/`.",
     "- Deterministic and offline: no network calls, no AI, no account. Stable finding codes and exit codes for CI.",
     "- Syngraphe owns only the text between its own markers in `AGENTS.md` and `CLAUDE.md`; everything else is preserved byte for byte, and a hand-edited block is reported rather than overwritten.",

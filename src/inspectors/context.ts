@@ -5,7 +5,8 @@
  * that planning (init) and reporting (status, check) can decide separately.
  */
 
-import type { Repository } from "../core/repository.ts";
+import type { PathKind } from "../core/fs.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import {
   CONTEXT_DIRECTORY,
   CONTEXT_ENTRIES,
@@ -53,7 +54,7 @@ export interface ContextInspection {
   historyCount: number;
 }
 
-export async function inspectContext(repository: Repository): Promise<ContextInspection> {
+export async function inspectContext(repository: ReadOnlyRepository): Promise<ContextInspection> {
   const kind = await repository.kind(CONTEXT_DIRECTORY);
 
   if (kind === "missing") {
@@ -74,8 +75,8 @@ export async function inspectContext(repository: Repository): Promise<ContextIns
     else missingFiles.push(file);
   }
 
-  const decisionCount = await countDocuments(repository, DECISIONS_DIRECTORY);
-  const historyCount = await countDocuments(repository, HISTORY_DIRECTORY);
+  const decisionCount = (await listDocumentFiles(repository, DECISIONS_DIRECTORY)).length;
+  const historyCount = (await listDocumentFiles(repository, HISTORY_DIRECTORY)).length;
 
   const base = {
     conflictReason: null,
@@ -86,14 +87,14 @@ export async function inspectContext(repository: Repository): Promise<ContextIns
     historyCount,
   };
 
-  const shape = await inspectShape(repository);
+  const shapeProblem = await inspectShape(repository, presentFiles);
 
   if (!manifest.present) {
-    if (shape.foreign) {
+    if (shapeProblem !== null) {
       return {
         ...base,
         status: "unrelated",
-        conflictReason: `${CONTEXT_DIRECTORY}/ exists, has no ${MANIFEST_PATH}, and contains unrelated entries: ${shape.entries.join(", ")}.`,
+        conflictReason: `${CONTEXT_DIRECTORY}/ exists, has no ${MANIFEST_PATH}, and ${shapeProblem}.`,
       };
     }
     return { ...base, status: "partial" };
@@ -113,11 +114,11 @@ export async function inspectContext(repository: Repository): Promise<ContextIns
   }
   // Without the marker there is nothing to identify the manifest by, so the
   // weaker shape test decides — as it does when there is no manifest at all.
-  if (manifest.protocol === null && shape.foreign) {
+  if (manifest.protocol === null && shapeProblem !== null) {
     return {
       ...base,
       status: "unrelated",
-      conflictReason: `${MANIFEST_PATH} does not declare "protocol": "${CONTEXT_PROTOCOL}", and ${CONTEXT_DIRECTORY}/ contains unrelated entries: ${shape.entries.join(", ")}.`,
+      conflictReason: `${MANIFEST_PATH} does not declare "protocol": "${CONTEXT_PROTOCOL}", and ${CONTEXT_DIRECTORY}/ ${shapeProblem}.`,
     };
   }
 
@@ -128,30 +129,69 @@ export async function inspectContext(repository: Repository): Promise<ContextIns
   return { ...base, status: missingFiles.length === 0 ? "valid" : "partial" };
 }
 
-interface ShapeInspection {
-  /** Directory entries other than the manifest and editor leftovers. */
-  entries: string[];
-  /** Entries exist and none of them belongs to the standard layout. */
-  foreign: boolean;
+/**
+ * Regular Markdown documents directly inside `directory`, in filename order.
+ *
+ * One rule serves both `status` counts and `<category> list`: a symlink or a
+ * directory named like a document is not a document, and a README describes
+ * its directory whatever its letter case.
+ */
+export async function listDocumentFiles(
+  repository: ReadOnlyRepository,
+  directory: string,
+): Promise<string[]> {
+  if ((await repository.kind(directory)) !== "directory") return [];
+  const files: string[] = [];
+  for (const entry of (await repository.list(directory)) ?? []) {
+    if (!entry.endsWith(".md") || entry.toLowerCase() === "readme.md") continue;
+    const file = `${directory}/${entry}`;
+    if ((await repository.kind(file)) === "file") files.push(file);
+  }
+  return files;
 }
 
 /**
  * The shape-based identity test, used only where the manifest cannot answer.
  *
+ * Returns why the directory does not look like a repository context, or null
+ * when it does. One familiar name is weak evidence — `truth/` or `index.md` is
+ * an ordinary name another tool may use — so the whole top level has to be the
+ * standard layout, each entry of its standard kind, with at least one standard
+ * document present as a regular file.
+ *
  * `manifest.json` is excluded: any tool may write one, so its presence says
  * nothing about who wrote it — which is the question being asked. An empty
  * directory is not evidence of another tool either, so it is not foreign.
  */
-async function inspectShape(repository: Repository): Promise<ShapeInspection> {
+async function inspectShape(
+  repository: ReadOnlyRepository,
+  presentFiles: string[],
+): Promise<string | null> {
   const listed = (await repository.list(CONTEXT_DIRECTORY)) ?? [];
   const entries = listed.filter((entry) => entry !== ".DS_Store" && entry !== MANIFEST_FILE);
-  return {
-    entries,
-    foreign: entries.length > 0 && !entries.some((entry) => CONTEXT_ENTRIES.includes(entry)),
-  };
+  if (entries.length === 0) return null;
+
+  const unknown = entries.filter((entry) => !CONTEXT_ENTRIES.includes(entry));
+  if (unknown.length > 0) return `contains unrelated entries: ${unknown.join(", ")}`;
+
+  const wrongKind: string[] = [];
+  for (const entry of entries) {
+    // Apart from the manifest, the standard top level is `index.md` and directories.
+    const expected: PathKind = entry.endsWith(".md") ? "file" : "directory";
+    const kind = await repository.kind(`${CONTEXT_DIRECTORY}/${entry}`);
+    if (kind !== expected) wrongKind.push(`${entry} (${kind})`);
+  }
+  if (wrongKind.length > 0) {
+    return `contains standard names of the wrong kind: ${wrongKind.join(", ")}`;
+  }
+
+  if (!presentFiles.some((file) => file !== MANIFEST_PATH)) {
+    return "contains no standard context document";
+  }
+  return null;
 }
 
-async function inspectManifest(repository: Repository): Promise<ManifestInspection> {
+async function inspectManifest(repository: ReadOnlyRepository): Promise<ManifestInspection> {
   const kind = await repository.kind(MANIFEST_PATH);
   if (kind !== "file" && kind !== "missing") {
     return {
@@ -205,13 +245,6 @@ async function inspectManifest(repository: Repository): Promise<ManifestInspecti
   const schemaVersion = typeof record.schemaVersion === "number" ? record.schemaVersion : null;
   const layout = typeof record.layout === "string" ? record.layout : null;
   return { present: true, parsed: true, protocol, schemaVersion, layout, parseError: null };
-}
-
-async function countDocuments(repository: Repository, directory: string): Promise<number> {
-  if ((await repository.kind(directory)) !== "directory") return 0;
-  const entries = await repository.list(directory);
-  if (entries === null) return 0;
-  return entries.filter((entry) => entry.endsWith(".md") && entry !== "README.md").length;
 }
 
 function emptyInspection(status: ContextStatus, conflictReason: string | null): ContextInspection {

@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { SyngrapheError } from "../core/errors.ts";
 import { EXIT_USAGE } from "../core/exit-codes.ts";
-import type { Repository } from "../core/repository.ts";
+import type { ReadOnlyRepository } from "../core/repository.ts";
 import { requireContext } from "./usable-context.ts";
 
 export const DEFAULT_TOKEN_BUDGET = 8000;
@@ -43,7 +43,7 @@ function emptyTotals(): SizeTotals {
 
 /** All regular files count toward bytes; only Markdown contributes words and estimated tokens. */
 export async function inspectStats(
-  repository: Repository,
+  repository: ReadOnlyRepository,
   budget = DEFAULT_TOKEN_BUDGET,
 ): Promise<ContextStats> {
   if (!Number.isSafeInteger(budget) || budget <= 0) {

@@ -7,6 +7,7 @@
  */
 
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   mkdir,
   mkdtemp,
@@ -109,6 +110,39 @@ export class TempRepo {
     return new Map([...files.entries()].sort(([a], [b]) => a.localeCompare(b)));
   }
 
+  /**
+   * Git's own state: hashes of HEAD, the index, every loose ref, packed-refs
+   * and config, plus Git's report of the worktree, HEAD and object store.
+   *
+   * Status runs without optional locks: a plain `git status` may refresh the
+   * index, and the snapshot would then change what it measures.
+   */
+  async gitSnapshot(): Promise<Map<string, string>> {
+    const gitDirectory = this.path(".git");
+    const state = new Map<string, string>();
+    for (const file of ["HEAD", "index", "packed-refs", "config"]) {
+      state.set(file, await hashFile(path.join(gitDirectory, file)));
+    }
+    const refs = await readdir(path.join(gitDirectory, "refs"), {
+      recursive: true,
+      withFileTypes: true,
+    });
+    for (const entry of refs) {
+      if (!entry.isFile()) continue;
+      const absolute = path.join(entry.parentPath, entry.name);
+      const relative = path.relative(gitDirectory, absolute).split(path.sep).join("/");
+      state.set(relative, await hashFile(absolute));
+    }
+    for (const args of [
+      ["status", "--porcelain=v2"],
+      ["rev-parse", "HEAD"],
+      ["count-objects", "-v"],
+    ]) {
+      state.set(args.join(" "), await this.git(["--no-optional-locks", ...args]));
+    }
+    return state;
+  }
+
   async cleanup(): Promise<void> {
     await rm(this.root, { recursive: true, force: true });
   }
@@ -125,6 +159,17 @@ export async function runCli(repo: TempRepo, argv: string[]): Promise<CliRun> {
   const output = createCapturedOutput();
   const code = await main(argv, { output, cwd: repo.root });
   return { code, stdout: output.stdout, stderr: output.stderr };
+}
+
+async function hashFile(absolutePath: string): Promise<string> {
+  try {
+    return createHash("sha256")
+      .update(await readFile(absolutePath))
+      .digest("hex");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return "<missing>";
+    throw error;
+  }
 }
 
 async function collect(root: string, directory: string, into: Map<string, string>): Promise<void> {
