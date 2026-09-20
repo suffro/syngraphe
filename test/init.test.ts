@@ -4,8 +4,17 @@ import { after, describe, it } from "node:test";
 import { planInitialization } from "../src/commands/init.ts";
 import { Repository } from "../src/core/repository.ts";
 import { inspectContext } from "../src/inspectors/context.ts";
-import { removeManagedBlock, validateManagedBlock } from "../src/managed/block.ts";
-import { AGENTS_MANAGED_BODY, CLAUDE_MANAGED_BODY } from "../src/templates/agents.ts";
+import {
+  insertManagedBlock,
+  removeManagedBlock,
+  validateManagedBlock,
+} from "../src/managed/block.ts";
+import {
+  AGENTS_MANAGED_BODY,
+  agentsManagedBody,
+  CLAUDE_MANAGED_BODY,
+  SUPERSEDED_AGENTS_BODIES,
+} from "../src/templates/agents.ts";
 import { CONTEXT_PROTOCOL, CONTEXT_TEMPLATES, MANIFEST_PATH } from "../src/templates/context.ts";
 import { runCli, TempRepo } from "./helpers/repo.ts";
 
@@ -150,6 +159,39 @@ describe("syngraphe init", () => {
 
     assert.equal(second.code, 0);
     assert.deepEqual([...afterSecond.entries()], [...afterFirst.entries()]);
+  });
+
+  it("updates a block an earlier Syngraphe version wrote, preserving everything else", async () => {
+    const [previousBody] = SUPERSEDED_AGENTS_BODIES;
+    assert.ok(previousBody, "a superseded body is required for this test");
+    const original = "# Project\n\nHouse rules.\n";
+    const repo = await repoWith({ "AGENTS.md": insertManagedBlock(original, previousBody) });
+
+    const result = await runCli(repo, ["init"]);
+
+    assert.equal(result.code, 0, result.stderr);
+    const patched = await repo.read("AGENTS.md");
+    assert.equal(validateManagedBlock(patched, AGENTS_MANAGED_BODY).status, "valid");
+    assert.equal(removeManagedBlock(patched), original, "user content must be preserved exactly");
+    assert.match(result.stdout, /PATCH[\s\S]*AGENTS\.md/);
+  });
+
+  it("updates an outdated scoped block to the body its scope expects", async () => {
+    const previousBody = SUPERSEDED_AGENTS_BODIES[1];
+    assert.ok(previousBody, "a superseded scoped body is required for this test");
+    const repo = await repoWith({
+      "packages/api/index.ts": "export {};\n",
+      "packages/api/AGENTS.md": insertManagedBlock("# API\n", previousBody),
+    });
+
+    assert.equal((await runCli(repo, ["init", "--scope", "packages/api"])).code, 0);
+
+    const patched = await repo.read("packages/api/AGENTS.md");
+    assert.equal(
+      validateManagedBlock(patched, agentsManagedBody("packages/api")).status,
+      "valid",
+      patched,
+    );
   });
 
   it("refuses to touch a manually modified managed block", async () => {

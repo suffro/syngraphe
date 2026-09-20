@@ -60,9 +60,12 @@ after internal implementation details.
 | `AGENT003` | error    | The file contains more than one Syngraphe block.               |
 | `AGENT004` | error    | The markers are unbalanced. The finding carries the line number. |
 | `AGENT005` | error    | `AGENTS.md` cannot be managed safely — it is a directory, a symlink, not valid UTF-8, or declares an unknown block version. |
+| `AGENT006` | warning  | The block still holds a body an earlier Syngraphe version wrote. Run `syngraphe init` to update it. |
 
 These are errors rather than warnings because `.context/` without a bootstrap is context nothing
-will read.
+will read. `AGENT006` is the exception: the file says what an older Syngraphe meant it to say, and
+`init` updates it without losing anything, so it is work the repository owes rather than a failure.
+It is a warning, which `--strict` still fails on.
 
 ### Claude — `CLAUDE`
 
@@ -73,6 +76,7 @@ will read.
 | `CLAUDE003` | error    | `CLAUDE.md` contains duplicate Syngraphe blocks.                            |
 | `CLAUDE004` | error    | The markers in `CLAUDE.md` are unbalanced.                                  |
 | `CLAUDE005` | warning  | A setup Syngraphe deliberately leaves alone, such as a symlink pointing elsewhere. |
+| `CLAUDE006` | warning  | The `CLAUDE.md` block still holds a body an earlier Syngraphe version wrote. Reserved: this body has had no superseded version yet. |
 
 A missing integration is a warning, not an error: an agent nobody uses here needs no file. Nothing at
 all is reported for a repository that shows no sign of using Claude.

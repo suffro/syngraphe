@@ -14,12 +14,14 @@ import {
   insertManagedBlock,
   type ManagedBlockState,
   renderManagedBlock,
+  replaceManagedBlock,
   validateManagedBlock,
 } from "./block.ts";
 
 export type ManagedFileStatus =
   | "ready"
   | "missing"
+  | "outdated"
   | "drift"
   | "duplicate"
   | "malformed"
@@ -35,11 +37,17 @@ export interface ManagedFileState {
   details: string | null;
 }
 
-/** Read a file and classify its managed block against the expected body. */
+/**
+ * Read a file and classify its managed block against the expected body.
+ *
+ * `supersededBodies` are bodies earlier Syngraphe versions wrote for this same
+ * file. They separate a block that is merely old from one a person edited.
+ */
 export async function inspectManagedFile(
   repository: ReadOnlyRepository,
   path: string,
   expectedBody: string,
+  supersededBodies: readonly string[] = [],
 ): Promise<ManagedFileState> {
   const kind = await repository.kind(path);
 
@@ -79,12 +87,22 @@ export async function inspectManagedFile(
     );
   }
 
-  const block = validateManagedBlock(content, expectedBody);
+  const block = validateManagedBlock(content, expectedBody, supersededBodies);
   switch (block.status) {
     case "absent":
       return state(path, kind, content, "missing", block, `${path} has no Syngraphe block.`, null);
     case "valid":
       return state(path, kind, content, "ready", block, null, null);
+    case "outdated":
+      return state(
+        path,
+        kind,
+        content,
+        "outdated",
+        block,
+        `The Syngraphe block in ${path} was written by an earlier Syngraphe version.`,
+        "Run `syngraphe init` to update it; only the text between the markers changes.",
+      );
     case "drift":
       return state(
         path,
@@ -133,9 +151,11 @@ export async function inspectManagedFile(
 /**
  * Turn a managed-file state into a plan.
  *
- * Only two outcomes ever write: creating a missing file, and inserting a block
- * into a file that has none. Everything else is reported, never repaired
- * silently.
+ * Only three outcomes ever write: creating a missing file, inserting a block
+ * into a file that has none, and replacing the body of a block that still
+ * holds a body Syngraphe published earlier. The third one rewrites nothing a
+ * person wrote — that is exactly what distinguishes it from drift, which is
+ * reported and never repaired silently.
  */
 export function planManagedFile(
   fileState: ManagedFileState,
@@ -166,6 +186,25 @@ export function planManagedFile(
           summary,
         });
       }
+      return plan;
+
+    case "outdated":
+      if (fileState.content !== null) {
+        plan.operations.push({
+          type: "patch",
+          path: fileState.path,
+          before: fileState.content,
+          after: replaceManagedBlock(fileState.content, expectedBody),
+          summary,
+        });
+        return plan;
+      }
+      // An outdated status always carries the content its block was read from.
+      plan.conflicts.push({
+        path: fileState.path,
+        message: fileState.message ?? `${fileState.path} cannot be updated safely.`,
+        details: fileState.details,
+      });
       return plan;
 
     default:

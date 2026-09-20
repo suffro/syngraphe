@@ -20,6 +20,8 @@ type Fixture = "uninitialized" | "initialized";
 const mutatingCommands: { fixture: Fixture; args: string[] }[] = [
   { fixture: "uninitialized", args: ["init"] },
   { fixture: "uninitialized", args: ["init", "--scope", "packages/api"] },
+  { fixture: "uninitialized", args: ["init", "--policy"] },
+  { fixture: "initialized", args: ["policy", "add"] },
   { fixture: "initialized", args: ["truth", "new", "domain-model"] },
   { fixture: "initialized", args: ["decision", "new", "use-postgres"] },
   { fixture: "initialized", args: ["state", "new", "migration"] },

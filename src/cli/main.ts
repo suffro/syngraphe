@@ -11,6 +11,7 @@ import { Command, CommanderError, InvalidArgumentError } from "commander";
 import { runCheck } from "../commands/check.ts";
 import { listDocuments, runDocument } from "../commands/documents.ts";
 import { runInit } from "../commands/init.ts";
+import { runPolicy } from "../commands/policy.ts";
 import { runAcrossScopes } from "../commands/scopes.ts";
 import { runStats } from "../commands/stats.ts";
 import { runStatus } from "../commands/status.ts";
@@ -19,6 +20,7 @@ import { EXIT_INTERNAL, EXIT_SUCCESS, EXIT_USAGE, type ExitCode } from "../core/
 import { selectRepositories, selectRepository } from "../core/scopes.ts";
 import { DEFAULT_TOKEN_BUDGET } from "../inspectors/stats.ts";
 import type { DocumentCategory } from "../templates/documents.ts";
+import { POLICY_FILE } from "../templates/policy.ts";
 import { consoleOutput, type Output } from "./output.ts";
 
 export interface MainOptions {
@@ -50,11 +52,24 @@ export async function main(argv: string[], options: MainOptions = {}): Promise<E
   program
     .command("init")
     .description("Create the repository context and the agent bootstrap files.")
+    .option("--policy", `Also create ${POLICY_FILE}, leaving an existing one untouched.`, false)
     .option("--dry-run", "Show the plan without changing repository contents or Git state.", false)
     .option("--json", "Emit the dry-run plan as versioned JSON.", false)
-    .action(async (commandOptions: { dryRun: boolean; json: boolean }) => {
+    .action(async (commandOptions: { policy: boolean; dryRun: boolean; json: boolean }) => {
       const repository = await selectRepository(cwd, program.opts().scope);
       exitCode = await runInit({ repository, output, ...commandOptions });
+    });
+
+  const policy = program.command("policy").description(`Create ${POLICY_FILE}.`);
+  policy
+    .command("add")
+    .description(`Write the ${POLICY_FILE} starting point at the repository root.`)
+    .option("--force", "Replace an existing policy file with the current template.", false)
+    .option("--dry-run", "Show the plan without changing repository contents or Git state.", false)
+    .option("--json", "Emit the dry-run plan as versioned JSON.", false)
+    .action(async (commandOptions: { force: boolean; dryRun: boolean; json: boolean }) => {
+      const repository = await selectRepository(cwd, program.opts().scope);
+      exitCode = await runPolicy({ repository, output, ...commandOptions });
     });
 
   for (const name of ["status", "check", "stats"] as const) {

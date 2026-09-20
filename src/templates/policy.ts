@@ -1,13 +1,28 @@
-# AGENT-POLICY.md
+/**
+ * The optional `AGENT-POLICY.md` starting point.
+ *
+ * Unlike the managed blocks, this is a seed and not a managed contract:
+ * Syngraphe writes it once, on request, and never compares, patches or checks
+ * it again. Every repository is expected to edit it.
+ *
+ * It lives at the repository root, beside `AGENTS.md`, because it is an
+ * instruction to the agent rather than a fact about the repository, and
+ * `.context/` holds facts. Keeping it out of `.context/` also keeps it out of
+ * the context token budget `syngraphe stats` reports.
+ */
+
+export const POLICY_FILE = "AGENT-POLICY.md";
+
+export const POLICY_CONTENTS = `# AGENT-POLICY.md
 
 How an AI coding agent should work in this repository: planning, delegation, consequential actions,
 and long-running processes.
 
-This is deliberately separate from `AGENTS.md`. That file holds durable repository facts, invariants,
-conventions and verification commands worth keeping in context during implementation. This file holds
-process rules that mainly matter for multi-step, costly or operationally risky work.
+This file is deliberately separate from \`AGENTS.md\`. That file holds durable repository facts,
+invariants, conventions and verification commands worth keeping in context during implementation.
+This one holds process rules that mainly matter for multi-step, costly or operationally risky work.
 
-Nothing here overrides `AGENTS.md`, the user's explicit instructions, or higher-priority rules.
+Nothing here overrides \`AGENTS.md\`, the user's explicit instructions, or higher-priority rules.
 
 ---
 
@@ -22,7 +37,7 @@ Do not add steps "for completeness" when a smaller process already gives suffici
 ## Repository-specific instructions take precedence
 
 Before acting, check for more specific instructions, documentation, conventions, or scoped
-`AGENTS.md` files relevant to the files being changed.
+\`AGENTS.md\` files relevant to the files being changed.
 
 Repository-specific instructions take precedence over these defaults. Do not apply a general rule
 mechanically when the repository defines a more specific workflow.
@@ -111,3 +126,4 @@ money.
 - Report outcomes exactly as observed. If a test fails, state that it failed and preserve the useful
   failure information. If a step was skipped, state which one and why.
 - Do not describe work as complete merely because the implementation was written.
+`;

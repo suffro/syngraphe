@@ -56,6 +56,20 @@ describe("validateManagedBlock", () => {
     assert.equal(validateManagedBlock(content, BODY).status, "drift");
   });
 
+  it("reports a body Syngraphe published earlier as outdated, not drift", () => {
+    const previous = `${BODY}\nOlder line.`;
+    const content = insertManagedBlock("# Title\n", previous);
+
+    assert.equal(validateManagedBlock(content, BODY).status, "drift");
+    assert.equal(validateManagedBlock(content, BODY, [previous]).status, "outdated");
+  });
+
+  it("still reports a hand-edited body as drift when superseded bodies are known", () => {
+    const content = insertManagedBlock("# Title\n", BODY).replace("@AGENTS.md", "@OTHER.md");
+
+    assert.equal(validateManagedBlock(content, BODY, [`${BODY}\nOlder line.`]).status, "drift");
+  });
+
   it("reports an unknown marker version", () => {
     const content = '<!-- syngraphe:start version="9" -->\nbody\n<!-- syngraphe:end -->\n';
     assert.equal(validateManagedBlock(content, BODY).status, "unsupported-version");

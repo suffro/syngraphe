@@ -10,7 +10,15 @@ const AGENTS_CODES = {
   duplicate: "AGENT003",
   malformed: "AGENT004",
   conflict: "AGENT005",
+  outdated: "AGENT006",
 } as const;
+
+/**
+ * An outdated block is not an integrity failure: the file says what an older
+ * Syngraphe meant it to say, and `syngraphe init` updates it without losing
+ * anything. It is a warning so `--strict` runs still surface it.
+ */
+const OUTDATED_SEVERITY: Severity = "warning";
 
 /** The `AGENTS.md` managed block is present, unique and unmodified. */
 export const agentsBootstrapCheck: Check = {
@@ -28,7 +36,7 @@ export const agentsBootstrapCheck: Check = {
 
     findings.push({
       code: AGENTS_CODES[state.status],
-      severity: "error",
+      severity: state.status === "outdated" ? OUTDATED_SEVERITY : "error",
       category: "agents",
       file: AGENTS_FILE,
       message: state.message ?? `${AGENTS_FILE} integration is not valid.`,
@@ -65,7 +73,9 @@ export function createIntegrationCheck(integration: AgentIntegration): Check {
       if (state.status === "missing" && !detection.present) return findings;
 
       const severity: Severity =
-        state.status === "missing" || state.status === "skipped" ? "warning" : "error";
+        state.status === "missing" || state.status === "skipped" || state.status === "outdated"
+          ? "warning"
+          : "error";
       const code = state.status === "skipped" ? codes.conflict : codes[state.status];
 
       findings.push({
@@ -84,7 +94,11 @@ export function createIntegrationCheck(integration: AgentIntegration): Check {
 function lineOf(state: ManagedFileState): { line?: number } {
   const block = state.block;
   if (!block) return {};
-  if (block.status === "drift" || block.status === "unsupported-version") {
+  if (
+    block.status === "drift" ||
+    block.status === "outdated" ||
+    block.status === "unsupported-version"
+  ) {
     return { line: block.block.startLine + 1 };
   }
   if (block.status === "duplicate") {

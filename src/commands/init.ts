@@ -27,12 +27,15 @@ import {
   MANIFEST_PATH,
 } from "../templates/context.ts";
 import { validatePlanOutputOptions, writePlanOutput } from "./plan-output.ts";
+import { planPolicy } from "./policy.ts";
 
 export interface InitOptions {
   repository: Repository;
   output: Output;
   dryRun: boolean;
   json?: boolean;
+  /** Also seed `AGENT-POLICY.md`; an existing one is left untouched. */
+  policy?: boolean;
 }
 
 /**
@@ -41,7 +44,10 @@ export interface InitOptions {
  * Throws when the repository is in a state Syngraphe must not act on at all;
  * conditions that only block part of the work are reported as plan conflicts.
  */
-export async function planInitialization(repository: ReadOnlyRepository): Promise<Plan> {
+export async function planInitialization(
+  repository: ReadOnlyRepository,
+  options: { policy?: boolean } = {},
+): Promise<Plan> {
   const plan = emptyPlan();
   const context = await inspectContext(repository);
 
@@ -86,6 +92,11 @@ export async function planInitialization(repository: ReadOnlyRepository): Promis
     merge(plan, await integration.planIntegration(repository));
   }
 
+  // Initialization must stay idempotent, so an existing policy file is reported
+  // as unchanged rather than replaced: `syngraphe policy add --force` is the
+  // one way to overwrite it.
+  if (options.policy) merge(plan, await planPolicy(repository, { keepExisting: true }));
+
   return plan;
 }
 
@@ -93,7 +104,7 @@ export async function runInit(options: InitOptions): Promise<ExitCode> {
   const { repository, output, dryRun } = options;
   const json = options.json ?? false;
   validatePlanOutputOptions({ dryRun, json });
-  const plan = await planInitialization(repository);
+  const plan = await planInitialization(repository, { policy: options.policy });
 
   const title = dryRun ? "Syngraphe initialization plan" : "Syngraphe initialization";
   const scope = repository.scope === "." ? "" : ` (scope: ${repository.scope})`;

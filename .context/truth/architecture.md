@@ -17,7 +17,7 @@ Agent integrations and checks are registries consumed by commands, never hardcod
 ## Major components
 
 - `src/cli/` — argument parsing (Commander), the `Output` sink, error-to-exit-code mapping.
-- `src/commands/` — `init`, `status`, `check`, `stats`, document lifecycle and scope reports. Composition roots: they gather inspections, consult
+- `src/commands/` — `init`, `status`, `check`, `stats`, `policy add`, document lifecycle and scope reports. Composition roots: they gather inspections, consult
   the registries, render, and apply.
 - `src/core/` — `Repository` (path safety, repository-relative IO), `fs` (the only module that
   writes), `git` (thin `execFile` wrapper), `plan` + `render-plan` + `plan-json` (plan/apply and its
@@ -72,7 +72,24 @@ parent/sibling context inside the Git tree; freshness considers only commits aff
 
 `core/scopes.ts` discovers contexts via tracked/unignored Git files. `status`, `check` and `stats`
 accept `--all`, which has a separate versioned JSON envelope. Default single-check JSON is unchanged.
-Nested bootstrap bodies clarify ancestor context and `--scope`; root bootstrap bytes are unchanged.
+Nested bootstrap bodies clarify ancestor context and `--scope`.
+
+Both bootstrap bodies gained a conditional `AGENT-POLICY.md` line, so the bytes `init` writes into
+`AGENTS.md` changed for the first time since publication. `validateManagedBlock` therefore accepts a
+list of bodies Syngraphe published earlier and reports `outdated` rather than `drift` for an exact
+match; `planManagedFile` rewrites an outdated body with `replaceManagedBlock`, and `check` reports
+`AGENT006`/`CLAUDE006` as warnings. `SUPERSEDED_AGENTS_BODIES` in `templates/agents.ts` is
+append-only: removing an entry turns every repository still carrying it into unrepairable drift.
+Drift itself is unchanged — still reported, never overwritten. See
+`../decisions/0008-the-policy-file-is-a-seed-and-managed-bodies-can-age.md`.
+
+`templates/policy.ts` and `commands/policy.ts` own `AGENT-POLICY.md`: a Git-root file seeded by
+`init --policy` or `policy add`, and never managed, compared or checked afterwards. `init` reports an
+existing one as unchanged so initialization stays idempotent; only `policy add --force` replaces it,
+through the ordinary byte-comparing patch. Case-only collisions are decided from directory entries,
+never from a stat, and `--scope` is a usage error because one policy governs the repository. The CLI
+has no interactive surface, so refusing with a non-zero exit is the default and `--force` is the
+whole confirmation mechanism.
 
 `LINK001` checks the case of every referenced path component against directory entries, including
 symlink names, after verifying the resolved target stays in Git. Canonically equivalent Unicode

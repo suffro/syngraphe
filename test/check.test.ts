@@ -4,6 +4,8 @@ import { after, describe, it } from "node:test";
 import { createCapturedOutput } from "../src/cli/output.ts";
 import { runCheck } from "../src/commands/check.ts";
 import { Repository } from "../src/core/repository.ts";
+import { insertManagedBlock } from "../src/managed/block.ts";
+import { SUPERSEDED_AGENTS_BODIES } from "../src/templates/agents.ts";
 import { CURRENT_STATE_PATH, INDEX_PATH, MANIFEST_PATH } from "../src/templates/context.ts";
 import { runCli, TempRepo } from "./helpers/repo.ts";
 
@@ -79,6 +81,24 @@ describe("syngraphe check", () => {
 
     assert.equal(code, 1);
     assert.equal(report.ok, false);
+  });
+
+  it("reports a block from an earlier Syngraphe version as a warning, not as drift", async () => {
+    const [previousBody] = SUPERSEDED_AGENTS_BODIES;
+    assert.ok(previousBody, "a superseded body is required for this test");
+    const repo = await repoWith();
+    assert.equal((await runCli(repo, ["init"])).code, 0);
+    await repo.write("AGENTS.md", insertManagedBlock("# Project\n", previousBody));
+
+    const { code, report } = await check(repo);
+
+    assert.equal(code, 0);
+    assert.ok(codes(report).includes("AGENT006"), codes(report).join(", "));
+    const finding = report.findings.find((entry) => entry.code === "AGENT006");
+    assert.equal(finding?.severity, "warning");
+    assert.match(finding?.message ?? "", /earlier Syngraphe version/);
+    // Strict runs still have to see it: it is work the repository owes.
+    assert.equal((await check(repo, { strict: true })).code, 1);
   });
 
   it("does not modify the repository", async () => {

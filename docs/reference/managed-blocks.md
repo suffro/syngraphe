@@ -36,12 +36,18 @@ This repository maintains shared project context in `.context/`.
 Before substantial work, read `.context/index.md` and the relevant context documents.
 Keep that context accurate: when a change makes it out of date, update it in the same change.
 If Syngraphe is available, run `syngraphe check` before completing substantial work.
+If `AGENT-POLICY.md` is present, read it before planning multi-step or expensive work.
 
 <!-- syngraphe:end -->
 ```
 
 No `##` heading wraps it: a heading would enter your document's outline and change how the file
 reads, which is not Syngraphe's to decide.
+
+The last line is written whether or not [`AGENT-POLICY.md`](/reference/cli#syngraphe-policy-add)
+exists, and it says so conditionally. A body that varied with the file's presence would mean that
+creating or deleting that file turned an untouched block into drift — a failure nobody caused and
+Syngraphe would refuse to repair. One constant body keeps the block a single comparable contract.
 
 ### `CLAUDE.md`
 
@@ -90,6 +96,7 @@ property, not an aspiration — see [design decisions](/concepts/design-decision
 | --------------------- | --------------------------------------------------------------- | ----------------------------- |
 | `absent`              | No block in the file.                                           | Inserts one.                  |
 | `valid`               | Exactly one block, matching the expected content.               | Nothing.                      |
+| `outdated`            | Exactly one block, holding a body an earlier Syngraphe wrote.   | Updates the body on the next `init`. |
 | `drift`               | Exactly one block, content differs.                             | Reports it. Never overwrites. |
 | `unsupported-version` | A block whose marker declares another version.                  | Reports it.                   |
 | `duplicate`           | More than one block in the file.                                | Reports it.                   |
@@ -97,7 +104,20 @@ property, not an aspiration — see [design decisions](/concepts/design-decision
 
 Comparison ignores trailing whitespace on each line and leading or trailing blank lines inside the
 block, so a reformatting editor does not manufacture drift. Anything else — a changed word, a
-removed line — is drift.
+removed line — is drift, unless it is exactly a body an earlier Syngraphe version published.
+
+## Why an outdated block is not drift
+
+When the canonical text changes, every repository already carrying the previous one would otherwise
+report drift: a manual repair demanded of people who edited nothing.
+
+So Syngraphe keeps the bodies it published before. A block matching one of them exactly was written
+by Syngraphe and edited by nobody, which is what makes rewriting it safe — there is nothing of yours
+inside to lose. `check` reports `AGENT006` as a warning and the next `init` replaces the body,
+leaving the rest of the file byte for byte identical.
+
+Published bodies are never removed from that list. Dropping one would turn every repository still
+carrying it into an unrepairable drift report.
 
 ## Why drift is never repaired automatically
 
@@ -140,6 +160,9 @@ import {
 const patched = insertManagedBlock(original, body);
 validateManagedBlock(patched, body).status; // "valid"
 removeManagedBlock(patched) === original;   // true
+
+// A third argument names bodies published earlier, separating an old block from an edited one.
+validateManagedBlock(patched, nextBody, [body]).status; // "outdated"
 ```
 
 Every function is a pure string transformation, which is why the guarantees above can be tested

@@ -42,11 +42,12 @@ See [Nested contexts and monorepos](/guides/monorepos) for examples and details.
 Creates the repository context and the agent bootstrap files.
 
 ```bash
-syngraphe init [--dry-run] [--json]
+syngraphe init [--policy] [--dry-run] [--json]
 ```
 
 | Option      | Effect                                                            |
 | ----------- | ----------------------------------------------------------------- |
+| `--policy`  | Also create [`AGENT-POLICY.md`](#syngraphe-policy-add). An existing one is left untouched. |
 | `--dry-run` | Render the plan and exit, changing no repository contents or Git state. |
 | `--json`    | Emit the plan as versioned JSON; requires `--dry-run`.            |
 
@@ -111,6 +112,10 @@ only the JSON payload and its final newline. See [plan JSON](/reference/json-out
   write, so a stale plan fails instead of half-applying.
 - **Byte-exact.** An existing `AGENTS.md` or `CLAUDE.md` that is not valid UTF-8 is a conflict
   rather than a patch; a UTF-8 byte order mark is kept.
+- **Self-updating blocks.** A managed block still holding a body an earlier Syngraphe version wrote
+  is updated in place. Only text Syngraphe itself published is replaced; a hand-edited block is
+  drift, and drift is still reported instead of overwritten. See
+  [managed blocks](/reference/managed-blocks).
 
 ### Exit codes
 
@@ -120,6 +125,66 @@ only the JSON payload and its final newline. See [plan JSON](/reference/json-out
 | `1`  | Conflicts were reported, or `.context/` is unrelated or has an invalid manifest. |
 | `2`  | Not inside a Git repository, or invalid usage such as `--json` without `--dry-run`. |
 | `3`  | `.context/manifest.json` declares an unsupported schema version.     |
+
+## `syngraphe policy add`
+
+Writes `AGENT-POLICY.md` at the repository root: a starting point for how an agent should work in
+this repository — planning, delegation, consequential actions, long-running processes and
+verification.
+
+```bash
+syngraphe policy add [--force] [--dry-run] [--json]
+```
+
+| Option      | Effect                                                            |
+| ----------- | ----------------------------------------------------------------- |
+| `--force`   | Replace an existing policy file with the current template.        |
+| `--dry-run` | Render the plan and exit, changing no repository contents or Git state. |
+| `--json`    | Emit the plan as versioned JSON; requires `--dry-run`.            |
+
+The file is a **seed, not a managed file**. Syngraphe writes it once and never compares, patches or
+checks it again: edit it freely, and expect every repository's copy to diverge. `AGENTS.md` points
+at it with one conditional line inside the managed block, so the reference costs nothing in a
+repository that has no policy file.
+
+### Why it is separate from `AGENTS.md`
+
+`AGENTS.md` is loaded by an agent in every session. It holds durable repository facts — commands,
+layout, conventions, invariants — and every line there is paid for on every task. Process rules
+mainly matter for multi-step, costly or risky work, so they live in a file an agent opens when the
+work warrants it.
+
+### Why it is at the repository root and not in `.context/`
+
+`.context/` holds facts about this repository. A policy is an instruction to the agent, which is
+what `AGENTS.md` and `CLAUDE.md` are — and those already live at the root. Keeping it out of
+`.context/` also keeps it out of the context size and token estimates
+[`syngraphe stats`](#syngraphe-stats) reports.
+
+One policy governs the whole repository, so the command refuses `--scope`.
+
+### Behaviour worth knowing
+
+- **Never silently destructive.** An existing `AGENT-POLICY.md` is a conflict that stops the run and
+  exits `1`. Replacing it needs `--force` on the command line; there is no prompt, because the CLI
+  has no interactive mode and a plan that depended on a terminal could not be dry-run or scripted.
+- **Idempotent through `init`.** `syngraphe init --policy` creates the file when it is absent and
+  reports it as unchanged when something is already there — whatever it contains, and whatever its
+  letter case. The policy is an optional extra, so it never stops initialization.
+- **Case-safe.** A file differing only by case, such as `agent-policy.md`, is a conflict on every
+  platform: on a case-insensitive filesystem the two spellings are one file, and on a case-sensitive
+  one a second spelling would be invisible to everybody else.
+- **Byte-exact.** With `--force`, the existing file is replaced only if its bytes still match the
+  ones the plan was built from, and a file that is not valid UTF-8 is a conflict rather than a
+  replacement.
+
+### Exit codes
+
+| Code | When                                                                 |
+| ---- | -------------------------------------------------------------------- |
+| `0`  | The policy was written, was already current, or `--dry-run` completed. |
+| `1`  | A conflict was reported: the file exists without `--force`, collides by case, or cannot be read. |
+| `2`  | Not inside a Git repository, `--scope` was used, or `--json` without `--dry-run`. |
 
 ## `syngraphe status`
 

@@ -190,6 +190,7 @@ git diff
 +Before substantial work, read `.context/index.md` and the relevant context documents.
 +Keep that context accurate: when a change makes it out of date, update it in the same change.
 +If Syngraphe is available, run `syngraphe check` before completing substantial work.
++If `AGENT-POLICY.md` is present, read it before planning multi-step or expensive work.
 +<!-- syngraphe:end -->
 +
  ## Build

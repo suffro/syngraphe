@@ -5,12 +5,22 @@
 Syngraphe implements initialization, integrity checks, statistics and document lifecycle helpers,
 including first-class truth documents and stable JSON projections of every mutating dry-run plan,
 with explicit package scopes for nested/monorepo context. A bundled GitHub Action now adds
-runner annotations, summaries and versioned reports on top of the same core. Schema v1, the root managed block and
-single-scope check JSON remain unchanged. The Action is released as `action-v1.0.0`, with `action-v1` for compatible updates.
+runner annotations, summaries and versioned reports on top of the same core. Schema v1 and
+single-scope check JSON remain unchanged; the root managed block gained one line, and repositories
+still carrying the previous body are updated by `init` rather than reported as drift.
+The Action is released as `action-v1.0.0`, with `action-v1` for compatible updates.
 These tags are independent of the npm CLI; package release metadata has not been changed.
 
 ## Recent relevant changes
 
+- `AGENT-POLICY.md` is a new optional root file, seeded by `syngraphe init --policy` or
+  `syngraphe policy add` and never managed afterwards. `AGENTS.md` points at it with one conditional
+  line inside the managed block, which changed the canonical bootstrap bytes for the first time. To
+  keep that from reporting drift everywhere, managed blocks now have an `outdated` state: a body
+  matching one Syngraphe published earlier is updated in place by `init` and reported as `AGENT006`
+  (warning) by `check`. Drift is untouched. The requested interactive overwrite prompt was not built;
+  `policy add` refuses and exits non-zero, and `--force` replaces. See
+  `decisions/0008-the-policy-file-is-a-seed-and-managed-bodies-can-age.md`.
 - The quick-audit follow-up fixes `LINK001` case portability and Markdown links with parentheses.
   Each component is checked against directory entries, and the destination scanner handles nested
   and escaped parentheses, angle delimiters and titles. No finding code or JSON version changes.
@@ -130,6 +140,9 @@ These tags are independent of the npm CLI; package release metadata has not been
 ## Next
 
 - Confirm hosted CI for the quick-audit follow-up on Ubuntu, macOS and Windows.
+- Carry `AGENT-POLICY.md`, `init --policy`, `policy add` and the new `AGENT006`/`CLAUDE006` warnings
+  into the next CLI release notes, stating explicitly that upgrading rewrites the `AGENTS.md` block
+  in place on the next `init`.
 - Carry the user-visible changes into the next CLI release notes. The repository keeps no changelog
   file, so none was invented: `init` refuses a non-UTF-8 `AGENTS.md` or `CLAUDE.md` and `check`
   reports it; a patch fails instead of overwriting an edit made after planning; `status` no longer

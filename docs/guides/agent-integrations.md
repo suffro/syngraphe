@@ -20,16 +20,36 @@ This repository maintains shared project context in `.context/`.
 Before substantial work, read `.context/index.md` and the relevant context documents.
 Keep that context accurate: when a change makes it out of date, update it in the same change.
 If Syngraphe is available, run `syngraphe check` before completing substantial work.
+If `AGENT-POLICY.md` is present, read it before planning multi-step or expensive work.
 
 <!-- syngraphe:end -->
 ```
 
-Three sentences, deliberately. The block is a pointer, not a policy document: whatever else you want
+Four sentences, deliberately. The block is a pointer, not a policy document: whatever else you want
 agents to know goes in your own part of `AGENTS.md`, outside the markers, where Syngraphe never
 touches it.
 
+The last sentence is written whether or not the file exists, which is why it is phrased as a
+condition. Deriving the block's text from what is on disk would make creating or deleting
+`AGENT-POLICY.md` turn an untouched block into drift.
+
 `AGENTS.md` belongs to no single vendor, which is why it is handled by the core rather than by an
 agent adapter.
+
+## `AGENT-POLICY.md` is optional, and yours
+
+`syngraphe init --policy` — or [`syngraphe policy add`](/reference/cli#syngraphe-policy-add) later —
+writes a starting point for *how* an agent should work here: planning, delegation, consequential
+actions, long-running processes, verification.
+
+It is a seed, not a managed file. Syngraphe writes it once and never reads it again: no block, no
+comparison, no check. Edit it until it describes your repository.
+
+Keeping it out of `AGENTS.md` is the point. `AGENTS.md` is loaded in every session, so every line
+there is paid for on every task, however small; process rules earn their place only when the work is
+multi-step, costly or risky. Keeping it out of `.context/` is the same argument from the other side:
+that directory holds facts about the repository, and this is an instruction to the agent — which is
+what `AGENTS.md` and `CLAUDE.md` are, and they live at the root too.
 
 ## The agents Syngraphe knows about
 

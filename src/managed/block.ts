@@ -40,6 +40,7 @@ export type ManagedBlockLookup =
 export type ManagedBlockState =
   | { status: "absent" }
   | { status: "valid"; block: ManagedBlock }
+  | { status: "outdated"; block: ManagedBlock }
   | { status: "drift"; block: ManagedBlock }
   | { status: "unsupported-version"; block: ManagedBlock }
   | { status: "duplicate"; blocks: ManagedBlock[] }
@@ -99,9 +100,16 @@ export function findManagedBlock(content: string): ManagedBlockLookup {
  * Compare the block found in `content` against the body Syngraphe would write.
  *
  * A block whose body was edited by hand is reported as drift and never
- * silently overwritten.
+ * silently overwritten. A body matching one of `supersededBodies` is a
+ * different case: those are bodies Syngraphe itself published, so the block is
+ * `outdated` rather than hand-edited, and rewriting it destroys nothing. The
+ * caller decides what to do with that distinction.
  */
-export function validateManagedBlock(content: string, expectedBody: string): ManagedBlockState {
+export function validateManagedBlock(
+  content: string,
+  expectedBody: string,
+  supersededBodies: readonly string[] = [],
+): ManagedBlockState {
   const lookup = findManagedBlock(content);
   if (lookup.status !== "found") return lookup;
 
@@ -111,7 +119,11 @@ export function validateManagedBlock(content: string, expectedBody: string): Man
   }
   const expected = normalizeBody(expectedBody);
   const actual = normalizeBody(block.body);
-  return actual === expected ? { status: "valid", block } : { status: "drift", block };
+  if (actual === expected) return { status: "valid", block };
+  if (supersededBodies.some((body) => normalizeBody(body) === actual)) {
+    return { status: "outdated", block };
+  }
+  return { status: "drift", block };
 }
 
 /**

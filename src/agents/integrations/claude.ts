@@ -30,6 +30,7 @@ export const claudeIntegration: AgentIntegration = {
     duplicate: "CLAUDE003",
     malformed: "CLAUDE004",
     conflict: "CLAUDE005",
+    outdated: "CLAUDE006",
   },
 
   async detect(repository: ReadOnlyRepository): Promise<AgentDetection> {
@@ -89,7 +90,9 @@ export const claudeIntegration: AgentIntegration = {
       return plan;
     }
 
-    if (state.status !== "missing") {
+    // `outdated` is reachable only once this body has a superseded version;
+    // the branch exists so that change stays a template-only edit.
+    if (state.status !== "missing" && state.status !== "outdated") {
       const plan = emptyPlan();
       plan.conflicts.push({
         path: CLAUDE_FILE,

@@ -67,6 +67,10 @@ documentation uses the full name.
 syngraphe init            # create the repository context and agent bootstrap
 syngraphe init --dry-run  # show exactly what would change; no repository or Git changes
 syngraphe init --dry-run --json  # same plan as stable, content-free JSON
+syngraphe init --policy   # also seed AGENT-POLICY.md, leaving an existing one alone
+
+syngraphe policy add          # seed AGENT-POLICY.md later; refuses to replace an existing one
+syngraphe policy add --force  # replace it with the current template
 
 syngraphe status          # summarize the repository context
 
@@ -131,6 +135,13 @@ in ancestor contexts. See [the monorepo guide](docs/guides/monorepos.md).
 It also adds a managed block to `AGENTS.md`, creating the file if needed, and a `CLAUDE.md` that
 imports `AGENTS.md` — created if absent, or extended with the import block only if it already
 exists. A `CLAUDE.md` that already imports `AGENTS.md`, or that is a symlink to it, is left alone.
+
+With `--policy` it also seeds `AGENT-POLICY.md` at the repository root: a starting point for how an
+agent should work here — planning, delegation, consequential actions, long-running processes and
+verification. It is a seed and not a managed file: Syngraphe writes it once and never compares,
+patches or checks it again. An existing one is left untouched; `syngraphe policy add --force` is the
+only way to replace it. The `AGENTS.md` block references it with one conditional line, written
+whether or not the file exists.
 
 The templates are deliberately small. They are starting points for humans to fill in, not
 questionnaires.
@@ -199,9 +210,11 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
 | `AGENT003`                | error    | `AGENTS.md` contains duplicate Syngraphe blocks               |
 | `AGENT004`                | error    | `AGENTS.md` markers are unbalanced                            |
 | `AGENT005`                | error    | `AGENTS.md` cannot be managed safely                          |
+| `AGENT006`                | warning  | the `AGENTS.md` block is from an earlier Syngraphe version    |
 | `CLAUDE001`               | warning  | Claude is used but `CLAUDE.md` has no import of `AGENTS.md`   |
 | `CLAUDE002` – `CLAUDE004` | error    | the `CLAUDE.md` block drifted, is duplicated, or is malformed |
 | `CLAUDE005`               | warning  | `CLAUDE.md` is a setup Syngraphe deliberately leaves alone    |
+| `CLAUDE006`               | warning  | the `CLAUDE.md` block is from an earlier Syngraphe version    |
 | `LINK001`                 | error    | a context document references a path that does not exist      |
 | `STATE001`                | warning  | `state/current.md` has not changed while the repository did   |
 | `STATE002`                | warning  | `state/current.md` contains only headings                     |
@@ -287,7 +300,8 @@ untouched.
 
 Implemented:
 
-- `syngraphe init`, with human or JSON dry-run plans
+- `syngraphe init`, with human or JSON dry-run plans, and `--policy`
+- `syngraphe policy add`, with `--force`
 - `syngraphe status`
 - `syngraphe check`, `--json`, `--strict`
 - `syngraphe stats`, `--json`, `--budget`

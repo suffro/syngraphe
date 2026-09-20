@@ -20461,7 +20461,7 @@ function findManagedBlock(content) {
   if (blocks.length > 1) return { status: "duplicate", blocks };
   return { status: "found", block: blocks[0] };
 }
-function validateManagedBlock(content, expectedBody) {
+function validateManagedBlock(content, expectedBody, supersededBodies = []) {
   const lookup = findManagedBlock(content);
   if (lookup.status !== "found") return lookup;
   const { block } = lookup;
@@ -20470,7 +20470,11 @@ function validateManagedBlock(content, expectedBody) {
   }
   const expected = normalizeBody(expectedBody);
   const actual = normalizeBody(block.body);
-  return actual === expected ? { status: "valid", block } : { status: "drift", block };
+  if (actual === expected) return { status: "valid", block };
+  if (supersededBodies.some((body) => normalizeBody(body) === actual)) {
+    return { status: "outdated", block };
+  }
+  return { status: "drift", block };
 }
 function insertManagedBlock(content, body) {
   const lookup = findManagedBlock(content);
@@ -20488,6 +20492,21 @@ function insertManagedBlock(content, body) {
   const next = [...lines.slice(0, at), ...segment, ...lines.slice(at)];
   return fromLf(joinLines(next), shape);
 }
+function replaceManagedBlock(content, body) {
+  const lookup = findManagedBlock(content);
+  if (lookup.status !== "found") {
+    throw new Error("replaceManagedBlock: content does not contain exactly one managed block");
+  }
+  const shape = detectTextShape(content);
+  const lines = splitLines(toLf(content));
+  const blockLines = renderManagedBlock(body).split("\n");
+  const next = [
+    ...lines.slice(0, lookup.block.startLine),
+    ...blockLines,
+    ...lines.slice(lookup.block.endLine + 1)
+  ];
+  return fromLf(joinLines(next), shape);
+}
 function insertionIndex(lines) {
   const first = lines[0]?.trim() ?? "";
   return /^#\s+\S/.test(first) ? 1 : 0;
@@ -20498,7 +20517,7 @@ function normalizeBody(body) {
 }
 
 // src/managed/file.ts
-async function inspectManagedFile(repository, path7, expectedBody) {
+async function inspectManagedFile(repository, path7, expectedBody, supersededBodies = []) {
   const kind = await repository.kind(path7);
   if (kind === "missing") {
     return state(path7, kind, null, "missing", null, `${path7} does not exist.`, null);
@@ -20530,12 +20549,22 @@ async function inspectManagedFile(repository, path7, expectedBody) {
       "Convert the file to UTF-8 and re-run; Syngraphe will not rewrite bytes it cannot decode."
     );
   }
-  const block = validateManagedBlock(content, expectedBody);
+  const block = validateManagedBlock(content, expectedBody, supersededBodies);
   switch (block.status) {
     case "absent":
       return state(path7, kind, content, "missing", block, `${path7} has no Syngraphe block.`, null);
     case "valid":
       return state(path7, kind, content, "ready", block, null, null);
+    case "outdated":
+      return state(
+        path7,
+        kind,
+        content,
+        "outdated",
+        block,
+        `The Syngraphe block in ${path7} was written by an earlier Syngraphe version.`,
+        "Run `syngraphe init` to update it; only the text between the markers changes."
+      );
     case "drift":
       return state(
         path7,
@@ -20603,6 +20632,23 @@ function planManagedFile(fileState, expectedBody, summary2) {
         });
       }
       return plan;
+    case "outdated":
+      if (fileState.content !== null) {
+        plan.operations.push({
+          type: "patch",
+          path: fileState.path,
+          before: fileState.content,
+          after: replaceManagedBlock(fileState.content, expectedBody),
+          summary: summary2
+        });
+        return plan;
+      }
+      plan.conflicts.push({
+        path: fileState.path,
+        message: fileState.message ?? `${fileState.path} cannot be updated safely.`,
+        details: fileState.details
+      });
+      return plan;
     default:
       plan.conflicts.push({
         path: fileState.path,
@@ -20626,7 +20672,8 @@ This repository maintains shared project context in \`.context/\`.
 
 Before substantial work, read \`.context/index.md\` and the relevant context documents.
 Keep that context accurate: when a change makes it out of date, update it in the same change.
-If Syngraphe is available, run \`syngraphe check\` before completing substantial work.`;
+If Syngraphe is available, run \`syngraphe check\` before completing substantial work.
+If \`AGENT-POLICY.md\` is present, read it before planning multi-step or expensive work.`;
 var CLAUDE_MANAGED_BODY = `${MANAGED_NOTICE}
 @${AGENTS_FILE}`;
 function agentsManagedBody(scope = ".") {
@@ -20640,12 +20687,39 @@ Read shared context in ancestor directories within this Git repository as well a
 Before substantial work, read \`.context/index.md\` and the relevant context documents.
 Keep that context accurate: when a change makes it out of date, update it in the same change.
 If Syngraphe is available, run \`syngraphe check\` with \`--scope\` set to this directory's path
-relative to the Git root before completing substantial work.`;
+relative to the Git root before completing substantial work.
+If an \`AGENT-POLICY.md\` is present in this repository, read it before planning multi-step or
+expensive work.`;
 }
+var SUPERSEDED_AGENTS_BODIES = [
+  // 0.4.0 and earlier: before the AGENT-POLICY.md reference.
+  `${MANAGED_NOTICE}
+
+This repository maintains shared project context in \`.context/\`.
+
+Before substantial work, read \`.context/index.md\` and the relevant context documents.
+Keep that context accurate: when a change makes it out of date, update it in the same change.
+If Syngraphe is available, run \`syngraphe check\` before completing substantial work.`,
+  `${MANAGED_NOTICE}
+
+This directory maintains its local project context in \`.context/\`.
+Paths here are relative to the directory containing this AGENTS.md.
+Read shared context in ancestor directories within this Git repository as well as this local context.
+
+Before substantial work, read \`.context/index.md\` and the relevant context documents.
+Keep that context accurate: when a change makes it out of date, update it in the same change.
+If Syngraphe is available, run \`syngraphe check\` with \`--scope\` set to this directory's path
+relative to the Git root before completing substantial work.`
+];
 
 // src/agents/agents-md.ts
 async function inspectAgentsBootstrap(repository) {
-  return inspectManagedFile(repository, AGENTS_FILE, agentsManagedBody(repository.scope));
+  return inspectManagedFile(
+    repository,
+    AGENTS_FILE,
+    agentsManagedBody(repository.scope),
+    SUPERSEDED_AGENTS_BODIES
+  );
 }
 
 // src/agents/integrations/claude.ts
@@ -20660,7 +20734,8 @@ var claudeIntegration = {
     drift: "CLAUDE002",
     duplicate: "CLAUDE003",
     malformed: "CLAUDE004",
-    conflict: "CLAUDE005"
+    conflict: "CLAUDE005",
+    outdated: "CLAUDE006"
   },
   async detect(repository) {
     const evidence = [];
@@ -20706,7 +20781,7 @@ var claudeIntegration = {
       });
       return plan;
     }
-    if (state2.status !== "missing") {
+    if (state2.status !== "missing" && state2.status !== "outdated") {
       const plan = emptyPlan();
       plan.conflicts.push({
         path: CLAUDE_FILE,
@@ -20805,8 +20880,10 @@ var AGENTS_CODES = {
   drift: "AGENT002",
   duplicate: "AGENT003",
   malformed: "AGENT004",
-  conflict: "AGENT005"
+  conflict: "AGENT005",
+  outdated: "AGENT006"
 };
+var OUTDATED_SEVERITY = "warning";
 var agentsBootstrapCheck = {
   id: "agents-md",
   label: AGENTS_FILE,
@@ -20818,7 +20895,7 @@ var agentsBootstrapCheck = {
     if (state2.status === "ready") return findings;
     findings.push({
       code: AGENTS_CODES[state2.status],
-      severity: "error",
+      severity: state2.status === "outdated" ? OUTDATED_SEVERITY : "error",
       category: "agents",
       file: AGENTS_FILE,
       message: state2.message ?? `${AGENTS_FILE} integration is not valid.`,
@@ -20843,7 +20920,7 @@ function createIntegrationCheck(integration) {
       const { state: state2, detection } = snapshot;
       if (state2.status === "ready" || state2.status === "native") return findings;
       if (state2.status === "missing" && !detection.present) return findings;
-      const severity = state2.status === "missing" || state2.status === "skipped" ? "warning" : "error";
+      const severity = state2.status === "missing" || state2.status === "skipped" || state2.status === "outdated" ? "warning" : "error";
       const code = state2.status === "skipped" ? codes.conflict : codes[state2.status];
       findings.push({
         code,
@@ -20860,7 +20937,7 @@ function createIntegrationCheck(integration) {
 function lineOf(state2) {
   const block = state2.block;
   if (!block) return {};
-  if (block.status === "drift" || block.status === "unsupported-version") {
+  if (block.status === "drift" || block.status === "outdated" || block.status === "unsupported-version") {
     return { line: block.block.startLine + 1 };
   }
   if (block.status === "duplicate") {

@@ -41,7 +41,12 @@ remove them afterwards. They never touch the developer's own repository.
   changes what every repository is validated against.
 - Any command that modifies the repository builds a plan first; inspection and writing never happen
   in the same function.
-- Root bootstrap content stays frozen; nested bootstraps use their own canonical body.
+- Changing a canonical managed body is a migration, not an edit: append the exact previous string to
+  `SUPERSEDED_AGENTS_BODIES` in the same change, or every initialized repository reports drift it
+  cannot repair. Entries are never removed or reworded. Nested bootstraps use their own canonical
+  body, and both variants share the one superseded list.
+- `AGENT-POLICY.md` is seeded, never managed: no markers, no expected content, no check. Nothing may
+  start comparing it against `templates/policy.ts`.
 - Scope paths use forward slashes and are Git-root-relative; filenames created by document commands
   use portable ASCII stems, without automatic dates or decision numbering.
 - New guards get a test that observes them failing, not only passing.
