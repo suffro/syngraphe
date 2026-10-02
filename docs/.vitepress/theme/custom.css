@@ -318,6 +318,20 @@
   border-bottom: 1px solid var(--vp-c-divider);
 }
 
+.syg-integration-note {
+  padding-top: 20px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--vp-c-text-2);
+  text-align: center;
+}
+
+.syg-integration-note a {
+  color: var(--vp-c-text-1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 /* The grid is the one decorative element: faint ruled paper, the surface the context is written
    on. It is masked to fade out, so it never competes with the text over it. */
 .syg-grid {

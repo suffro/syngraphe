@@ -13,6 +13,10 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Recent relevant changes
 
+- The optional HOL Guard command extension for Syngraphe was merged on 2026-10-02 in
+  [hashgraph-online/hol-guard#2929](https://github.com/hashgraph-online/hol-guard/pull/2929).
+  The documentation home page now carries a small note below the hero, linking to the merged PR
+  and describing the support as an opt-in command extension.
 - `AGENT-POLICY.md` is a new optional root file, seeded by `syngraphe init --policy` or
   `syngraphe policy add` and never managed afterwards. `AGENTS.md` points at it with one conditional
   line inside the managed block, which changed the canonical bootstrap bytes for the first time. To
