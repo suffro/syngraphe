@@ -13,6 +13,10 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Recent relevant changes
 
+- `docs/guides/hol-guard.md` documents installation, agent setup, the local opt-in for
+  `command.syngraphe`, covered mutations, and the dry-run/review workflow, using HOL Guard's
+  upstream documentation and canonical extension source. It is linked from the Guides sidebar.
+  Tests, builds and automated checks were not run for this documentation change, as requested.
 - The optional HOL Guard command extension for Syngraphe was merged on 2026-10-02 in
   [hashgraph-online/hol-guard#2929](https://github.com/hashgraph-online/hol-guard/pull/2929).
   The documentation home page now carries a small note below the hero, linking to the merged PR

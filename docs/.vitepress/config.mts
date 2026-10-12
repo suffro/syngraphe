@@ -102,6 +102,7 @@ const sidebar = [
       { text: "Continuous integration", link: "/guides/continuous-integration" },
       { text: "Troubleshooting", link: "/guides/troubleshooting" },
       { text: "Nested contexts and monorepos", link: "/guides/monorepos" },
+      { text: "HOL Guard integration", link: "/guides/hol-guard" },
     ],
   },
   {
