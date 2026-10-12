@@ -51,6 +51,12 @@ hol-guard run codex --dry-run
 hol-guard run codex
 ```
 
+After configuring Codex, diagnose its integration:
+
+```bash
+hol-guard doctor codex
+```
+
 Use the [agent support matrix](https://github.com/hashgraph-online/hol-guard/blob/main/docs/guard/harness-support.md)
 for your agent's integration and coverage. Protection applies at the execution points that
 integration supports; installing Guard alone does not intercept every command in an ordinary terminal.
@@ -102,7 +108,8 @@ The coverage is defined in HOL Guard's
 
 ## Inspect, then apply
 
-From a Git working tree, ask the protected agent to preview the change first:
+From a Git working tree where Syngraphe has already been initialized (`syngraphe init`), ask the
+protected agent to preview the change first:
 
 ```bash
 syngraphe decision new use-postgres --title "Use PostgreSQL" --dry-run --json
@@ -136,4 +143,4 @@ hol-guard command explain 'syngraphe decision new use-postgres'
 These commands evaluate the supplied command text without executing it or creating an approval.
 If a mutation receives no Syngraphe review, check the installed catalog, the local opt-in setting,
 and the agent integration. For other decisions, inspect the matching rules and effective settings.
-See [HOL Guard's command inspection guidance](https://github.com/hashgraph-online/hol-guard#guard-operations).
+See [HOL Guard's command inspection guidance](https://github.com/hashgraph-online/hol-guard#understand-a-paused-command).
