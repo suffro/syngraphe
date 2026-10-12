@@ -6,6 +6,25 @@ order: 7
 
 # HOL Guard integration
 
+<div class="syg-integration-catalog">
+  <a
+    class="syg-integration-badge"
+    href="https://hol.org/guard/extensions/command.syngraphe"
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label="View the Syngraphe extension in HOL Guard's official catalog (opens in a new tab)."
+  >
+    <img class="syg-integration-badge__logo" src="/static/png/hol-guard-mark.png" alt="" width="28" height="28" />
+    <span class="syg-integration-badge__text">
+      <span class="syg-integration-badge__name">HOL Guard</span>
+      <span class="syg-integration-badge__caption">Official extension listing</span>
+    </span>
+    <svg class="syg-integration-badge__arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M7 17 17 7M7 7h10v10" />
+    </svg>
+  </a>
+</div>
+
 Syngraphe gives coding agents shared repository context. [HOL Guard](https://hol.org/guard)
 reviews agent actions before they run. Its `command.syngraphe` extension recognizes context
 changes made through both `syngraphe` and `syg`, so you can inspect a plan before an agent applies it.

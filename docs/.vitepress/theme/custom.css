@@ -94,7 +94,7 @@
  * link with, and a link that differs from body text only in lightness is one most readers never
  * notice — the underline says "link" without needing a colour the brand does not have.
  */
-.vp-doc a:not(.header-anchor):not(.VPBadge) {
+.vp-doc a:not(.header-anchor):not(.VPBadge):not(.syg-integration-badge) {
   color: var(--syg-link);
   text-decoration: underline;
   text-decoration-thickness: 1px;
@@ -103,7 +103,7 @@
   transition: color 0.15s ease, text-decoration-color 0.15s ease;
 }
 
-.vp-doc a:not(.header-anchor):not(.VPBadge):hover {
+.vp-doc a:not(.header-anchor):not(.VPBadge):not(.syg-integration-badge):hover {
   color: var(--vp-c-brand-1);
   text-decoration-color: currentColor;
 }
@@ -320,16 +320,73 @@
 
 .syg-integration-note {
   padding-top: 20px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--vp-c-text-2);
   text-align: center;
 }
 
-.syg-integration-note a {
+.syg-integration-catalog {
+  margin: 20px 0 24px;
+}
+
+.syg-integration-badge,
+.vp-doc .syg-integration-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  padding: 10px 18px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 999px;
+  background: transparent;
   color: var(--vp-c-text-1);
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-align: left;
+  text-decoration: none;
+  transition: border-color 160ms ease;
+}
+
+.syg-integration-badge:hover,
+.vp-doc .syg-integration-badge:hover {
+  border-color: var(--vp-c-text-3);
+  color: var(--vp-c-text-1);
+}
+
+.syg-integration-badge:focus-visible {
+  outline: 2px solid var(--vp-c-brand-1);
+  outline-offset: 4px;
+}
+
+.syg-integration-badge__logo {
+  flex: none;
+  object-fit: contain;
+  filter: brightness(0);
+}
+
+.dark .syg-integration-badge__logo {
+  filter: brightness(0) invert(1);
+}
+
+.syg-integration-badge__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.syg-integration-badge__name {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+
+.syg-integration-badge__caption {
+  color: var(--vp-c-text-2);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.syg-integration-badge__arrow {
+  flex: none;
+  color: var(--vp-c-text-3);
 }
 
 /* The grid is the one decorative element: faint ruled paper, the surface the context is written

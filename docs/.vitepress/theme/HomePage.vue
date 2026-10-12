@@ -151,17 +151,39 @@ const capabilities = [
       </div>
     </section>
 
-    <p class="syg-container syg-integration-note">
-      Syngraphe is now supported by
+    <div class="syg-container syg-integration-note">
       <a
-        href="https://github.com/hashgraph-online/hol-guard/pull/2929"
-        target="_blank"
-        rel="noopener noreferrer"
+        class="syg-integration-badge"
+        :href="withBase('/guides/hol-guard')"
+        aria-label="HOL Guard: opt-in Syngraphe command extension. Read the integration guide."
       >
-        HOL Guard
+        <img
+          class="syg-integration-badge__logo"
+          :src="withBase('/static/png/hol-guard-mark.png')"
+          alt=""
+          width="28"
+          height="28"
+        />
+        <span class="syg-integration-badge__text">
+          <span class="syg-integration-badge__name">HOL Guard</span>
+          <span class="syg-integration-badge__caption">Opt-in command extension</span>
+        </span>
+        <svg
+          class="syg-integration-badge__arrow"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M5 12h14m-5-5 5 5-5 5" />
+        </svg>
       </a>
-      through an opt-in command extension.
-    </p>
+    </div>
 
     <!-- ── Preview ──────────────────────────────────────────── -->
     <section class="syg-section" id="preview">

@@ -16,13 +16,19 @@ These tags are independent of the npm CLI; package release metadata has not been
 - `docs/guides/hol-guard.md` documents installation, agent setup, the local opt-in for
   `command.syngraphe`, covered mutations, and the dry-run/review workflow, using HOL Guard's
   upstream documentation and canonical extension source. It is linked from the Guides sidebar.
+  A matching transparent badge at the top links to the
+  [official extension listing](https://hol.org/guard/extensions/command.syngraphe) in a new tab.
   The example requires an initialized context; Codex setup includes `hol-guard doctor codex`,
   and the command-inspection link targets the upstream "Understand a paused command" section.
   Tests, builds and automated checks were not run for this documentation change, as requested.
 - The optional HOL Guard command extension for Syngraphe was merged on 2026-10-02 in
   [hashgraph-online/hol-guard#2929](https://github.com/hashgraph-online/hol-guard/pull/2929).
-  The documentation home page now carries a small note below the hero, linking to the merged PR
-  and describing the support as an opt-in command extension.
+  The documentation home page carries a transparent outlined badge below the hero, linking to
+  the integration guide and describing the support as an opt-in command extension. Its local
+  `docs/public/static/png/hol-guard-mark.png` is the unmodified
+  [official dashboard mark](https://github.com/hashgraph-online/hol-guard/blob/main/dashboard/public/brand/Logo_Icon_Dark.png),
+  displayed in monochrome for the site's light and dark themes. No tests or builds were run for
+  this styling change, as requested.
 - `AGENT-POLICY.md` is a new optional root file, seeded by `syngraphe init --policy` or
   `syngraphe policy add` and never managed afterwards. `AGENTS.md` points at it with one conditional
   line inside the managed block, which changed the canonical bootstrap bytes for the first time. To
