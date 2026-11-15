@@ -20517,7 +20517,7 @@ function normalizeBody(body) {
 }
 
 // src/managed/file.ts
-async function inspectManagedFile(repository, path7, expectedBody, supersededBodies = []) {
+async function inspectManagedFile(repository, path7, expectedBody, supersededBodies = [], isNewer = () => false) {
   const kind = await repository.kind(path7);
   if (kind === "missing") {
     return state(path7, kind, null, "missing", null, `${path7} does not exist.`, null);
@@ -20566,6 +20566,17 @@ async function inspectManagedFile(repository, path7, expectedBody, supersededBod
         "Run `syngraphe init` to update it; only the text between the markers changes."
       );
     case "drift":
+      if (isNewer(block.block.body)) {
+        return state(
+          path7,
+          kind,
+          content,
+          "newer",
+          block,
+          `The Syngraphe block in ${path7} was written by a newer Syngraphe version.`,
+          "This build cannot validate it and leaves it unchanged. Upgrade Syngraphe to check it."
+        );
+      }
       return state(
         path7,
         kind,
@@ -20612,6 +20623,12 @@ function planManagedFile(fileState, expectedBody, summary2) {
   switch (fileState.status) {
     case "ready":
       plan.unchanged.push({ path: fileState.path, reason: "already up to date" });
+      return plan;
+    case "newer":
+      plan.unchanged.push({
+        path: fileState.path,
+        reason: "written by a newer Syngraphe version; not downgraded"
+      });
       return plan;
     case "missing":
       if (fileState.content === null) {
@@ -20665,7 +20682,19 @@ function state(path7, kind, content, status, block, message, details) {
 // src/templates/agents.ts
 var AGENTS_FILE = "AGENTS.md";
 var CLAUDE_FILE = "CLAUDE.md";
-var MANAGED_NOTICE = "<!-- Managed by Syngraphe. Do not edit this block manually. -->";
+var MANAGED_BODY_REVISION = 1;
+var MANAGED_NOTICE = `<!-- Managed by Syngraphe (revision ${MANAGED_BODY_REVISION}). Do not edit this block manually. -->`;
+var UNREVISIONED_NOTICE = "<!-- Managed by Syngraphe. Do not edit this block manually. -->";
+var REVISION_PATTERN = /^<!--\s*Managed by Syngraphe \(revision (\d{1,9})\)/;
+function declaredBodyRevision(body) {
+  const firstLine = body.replace(/^\s+/, "").split("\n", 1)[0] ?? "";
+  const match = REVISION_PATTERN.exec(firstLine);
+  return match?.[1] ? Number.parseInt(match[1], 10) : null;
+}
+function isNewerManagedBody(body) {
+  const revision = declaredBodyRevision(body);
+  return revision !== null && revision > MANAGED_BODY_REVISION;
+}
 var AGENTS_MANAGED_BODY = `${MANAGED_NOTICE}
 
 This repository maintains shared project context in \`.context/\`.
@@ -20693,14 +20722,14 @@ expensive work.`;
 }
 var SUPERSEDED_AGENTS_BODIES = [
   // 0.4.0 and earlier: before the AGENT-POLICY.md reference.
-  `${MANAGED_NOTICE}
+  `${UNREVISIONED_NOTICE}
 
 This repository maintains shared project context in \`.context/\`.
 
 Before substantial work, read \`.context/index.md\` and the relevant context documents.
 Keep that context accurate: when a change makes it out of date, update it in the same change.
 If Syngraphe is available, run \`syngraphe check\` before completing substantial work.`,
-  `${MANAGED_NOTICE}
+  `${UNREVISIONED_NOTICE}
 
 This directory maintains its local project context in \`.context/\`.
 Paths here are relative to the directory containing this AGENTS.md.
@@ -20709,7 +20738,33 @@ Read shared context in ancestor directories within this Git repository as well a
 Before substantial work, read \`.context/index.md\` and the relevant context documents.
 Keep that context accurate: when a change makes it out of date, update it in the same change.
 If Syngraphe is available, run \`syngraphe check\` with \`--scope\` set to this directory's path
-relative to the Git root before completing substantial work.`
+relative to the Git root before completing substantial work.`,
+  // 0.4.1: with the AGENT-POLICY.md reference, before bodies declared a revision.
+  `${UNREVISIONED_NOTICE}
+
+This repository maintains shared project context in \`.context/\`.
+
+Before substantial work, read \`.context/index.md\` and the relevant context documents.
+Keep that context accurate: when a change makes it out of date, update it in the same change.
+If Syngraphe is available, run \`syngraphe check\` before completing substantial work.
+If \`AGENT-POLICY.md\` is present, read it before planning multi-step or expensive work.`,
+  `${UNREVISIONED_NOTICE}
+
+This directory maintains its local project context in \`.context/\`.
+Paths here are relative to the directory containing this AGENTS.md.
+Read shared context in ancestor directories within this Git repository as well as this local context.
+
+Before substantial work, read \`.context/index.md\` and the relevant context documents.
+Keep that context accurate: when a change makes it out of date, update it in the same change.
+If Syngraphe is available, run \`syngraphe check\` with \`--scope\` set to this directory's path
+relative to the Git root before completing substantial work.
+If an \`AGENT-POLICY.md\` is present in this repository, read it before planning multi-step or
+expensive work.`
+];
+var SUPERSEDED_CLAUDE_BODIES = [
+  // 0.1.0–0.4.1: before bodies declared a revision.
+  `${UNREVISIONED_NOTICE}
+@${AGENTS_FILE}`
 ];
 
 // src/agents/agents-md.ts
@@ -20718,7 +20773,8 @@ async function inspectAgentsBootstrap(repository) {
     repository,
     AGENTS_FILE,
     agentsManagedBody(repository.scope),
-    SUPERSEDED_AGENTS_BODIES
+    SUPERSEDED_AGENTS_BODIES,
+    isNewerManagedBody
   );
 }
 
@@ -20735,7 +20791,8 @@ var claudeIntegration = {
     duplicate: "CLAUDE003",
     malformed: "CLAUDE004",
     conflict: "CLAUDE005",
-    outdated: "CLAUDE006"
+    outdated: "CLAUDE006",
+    newer: "CLAUDE007"
   },
   async detect(repository) {
     const evidence = [];
@@ -20760,7 +20817,7 @@ var claudeIntegration = {
         details: `Syngraphe does not write through symlinks. Point it at ${AGENTS_FILE}, or import ${AGENTS_FILE} from its target.`
       };
     }
-    const fileState = await inspectManagedFile(repository, CLAUDE_FILE, CLAUDE_MANAGED_BODY);
+    const fileState = await inspectClaudeFile(repository);
     if (fileState.status === "missing" && fileState.content !== null && IMPORT_PATTERN.test(toLf(fileState.content))) {
       return ready([CLAUDE_FILE], `${CLAUDE_FILE} already imports ${AGENTS_FILE}.`);
     }
@@ -20773,7 +20830,7 @@ var claudeIntegration = {
   },
   async planIntegration(repository) {
     const state2 = await this.inspect(repository);
-    if (state2.status === "ready" || state2.status === "native" || state2.status === "skipped") {
+    if (state2.status === "ready" || state2.status === "native" || state2.status === "skipped" || state2.status === "newer") {
       const plan = emptyPlan();
       plan.unchanged.push({
         path: CLAUDE_FILE,
@@ -20790,10 +20847,19 @@ var claudeIntegration = {
       });
       return plan;
     }
-    const fileState = await inspectManagedFile(repository, CLAUDE_FILE, CLAUDE_MANAGED_BODY);
+    const fileState = await inspectClaudeFile(repository);
     return planManagedFile(fileState, CLAUDE_MANAGED_BODY, CLAUDE_PATCH_SUMMARY);
   }
 };
+function inspectClaudeFile(repository) {
+  return inspectManagedFile(
+    repository,
+    CLAUDE_FILE,
+    CLAUDE_MANAGED_BODY,
+    SUPERSEDED_CLAUDE_BODIES,
+    isNewerManagedBody
+  );
+}
 function ready(files, details) {
   return { status: "ready", files, message: null, details };
 }
@@ -20881,9 +20947,13 @@ var AGENTS_CODES = {
   duplicate: "AGENT003",
   malformed: "AGENT004",
   conflict: "AGENT005",
-  outdated: "AGENT006"
+  outdated: "AGENT006",
+  newer: "AGENT007"
 };
-var OUTDATED_SEVERITY = "warning";
+var VERSION_SKEW_SEVERITY = "warning";
+function severityOf(status) {
+  return status === "outdated" || status === "newer" ? VERSION_SKEW_SEVERITY : "error";
+}
 var agentsBootstrapCheck = {
   id: "agents-md",
   label: AGENTS_FILE,
@@ -20895,7 +20965,7 @@ var agentsBootstrapCheck = {
     if (state2.status === "ready") return findings;
     findings.push({
       code: AGENTS_CODES[state2.status],
-      severity: state2.status === "outdated" ? OUTDATED_SEVERITY : "error",
+      severity: severityOf(state2.status),
       category: "agents",
       file: AGENTS_FILE,
       message: state2.message ?? `${AGENTS_FILE} integration is not valid.`,
@@ -20920,7 +20990,7 @@ function createIntegrationCheck(integration) {
       const { state: state2, detection } = snapshot;
       if (state2.status === "ready" || state2.status === "native") return findings;
       if (state2.status === "missing" && !detection.present) return findings;
-      const severity = state2.status === "missing" || state2.status === "skipped" || state2.status === "outdated" ? "warning" : "error";
+      const severity = state2.status === "missing" || state2.status === "skipped" ? "warning" : severityOf(state2.status);
       const code = state2.status === "skipped" ? codes.conflict : codes[state2.status];
       findings.push({
         code,

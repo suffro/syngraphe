@@ -8,7 +8,7 @@ const patch = [
   { added: false, text: "# AGENTS.md" },
   { added: false, text: "" },
   { added: true, text: '<!-- syngraphe:start version="1" -->' },
-  { added: true, text: "<!-- Managed by Syngraphe. Do not edit this block manually. -->" },
+  { added: true, text: "<!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->" },
   { added: true, text: "" },
   { added: true, text: "This repository maintains shared project context in `.context/`." },
   { added: true, text: "" },

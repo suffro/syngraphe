@@ -9,7 +9,12 @@
 import type { Plan } from "../core/plan.ts";
 import type { ReadOnlyRepository } from "../core/repository.ts";
 import { inspectManagedFile, type ManagedFileState, planManagedFile } from "../managed/file.ts";
-import { AGENTS_FILE, agentsManagedBody, SUPERSEDED_AGENTS_BODIES } from "../templates/agents.ts";
+import {
+  AGENTS_FILE,
+  agentsManagedBody,
+  isNewerManagedBody,
+  SUPERSEDED_AGENTS_BODIES,
+} from "../templates/agents.ts";
 
 export const AGENTS_PATCH_SUMMARY = "Syngraphe repository-context bootstrap";
 
@@ -21,6 +26,7 @@ export async function inspectAgentsBootstrap(
     AGENTS_FILE,
     agentsManagedBody(repository.scope),
     SUPERSEDED_AGENTS_BODIES,
+    isNewerManagedBody,
   );
 }
 

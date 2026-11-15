@@ -83,6 +83,13 @@ append-only: removing an entry turns every repository still carrying it into unr
 Drift itself is unchanged — still reported, never overwritten. See
 `../decisions/0008-the-policy-file-is-a-seed-and-managed-bodies-can-age.md`.
 
+The opposite direction works through body revisions. Every canonical body declares
+`MANAGED_BODY_REVISION` in its notice line. `inspectManagedFile` accepts an `isNewer` predicate,
+supplied by `templates/agents.ts`. A drifted body that declares a later revision becomes `newer`:
+`check` reports `AGENT007`/`CLAUDE007` as warnings and `planManagedFile` leaves the block unchanged.
+The Claude integration has its own `SUPERSEDED_CLAUDE_BODIES`. See
+`../decisions/0009-managed-bodies-declare-a-revision.md`.
+
 `templates/policy.ts` and `commands/policy.ts` own `AGENT-POLICY.md`: a Git-root file seeded by
 `init --policy` or `policy add`, and never managed, compared or checked afterwards. `init` reports an
 existing one as unchanged so initialization stays idempotent; only `policy add --force` replaces it,

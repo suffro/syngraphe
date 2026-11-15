@@ -41,10 +41,16 @@ remove them afterwards. They never touch the developer's own repository.
   changes what every repository is validated against.
 - Any command that modifies the repository builds a plan first; inspection and writing never happen
   in the same function.
-- Changing a canonical managed body is a migration, not an edit: append the exact previous string to
-  `SUPERSEDED_AGENTS_BODIES` in the same change, or every initialized repository reports drift it
-  cannot repair. Entries are never removed or reworded. Nested bootstraps use their own canonical
-  body, and both variants share the one superseded list.
+- Changing a canonical managed body is a migration, not an edit. In the same change:
+  - bump `MANAGED_BODY_REVISION`;
+  - append the exact previous strings to `SUPERSEDED_AGENTS_BODIES` or `SUPERSEDED_CLAUDE_BODIES`,
+    or every initialized repository reports drift it cannot repair;
+  - add each previous body as a literal to `test/managed-revision.test.ts`.
+
+  Entries are never removed or reworded, and they never interpolate the current notice. Nested
+  bootstraps use their own canonical body, and both variants share the one superseded list. A body
+  change also requires an Action release from the same commit, or pinned Action users see the new
+  body as drift.
 - `AGENT-POLICY.md` is seeded, never managed: no markers, no expected content, no check. Nothing may
   start comparing it against `templates/policy.ts`.
 - Scope paths use forward slashes and are Git-root-relative; filenames created by document commands

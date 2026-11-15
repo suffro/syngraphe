@@ -61,11 +61,15 @@ after internal implementation details.
 | `AGENT004` | error    | The markers are unbalanced. The finding carries the line number. |
 | `AGENT005` | error    | `AGENTS.md` cannot be managed safely — it is a directory, a symlink, not valid UTF-8, or declares an unknown block version. |
 | `AGENT006` | warning  | The block still holds a body an earlier Syngraphe version wrote. Run `syngraphe init` to update it. |
+| `AGENT007` | warning  | The block declares a body revision newer than this Syngraphe knows. Upgrade Syngraphe to validate it; `init` leaves it unchanged. |
 
 These are errors rather than warnings because `.context/` without a bootstrap is context nothing
-will read. `AGENT006` is the exception: the file says what an older Syngraphe meant it to say, and
-`init` updates it without losing anything, so it is work the repository owes rather than a failure.
-It is a warning, which `--strict` still fails on.
+will read. `AGENT006` and `AGENT007` are the exceptions, because both are version skew rather than
+damage. With `AGENT006` the file says what an older Syngraphe meant it to say, and `init` updates it
+without losing anything, so it is work the repository owes rather than a failure. With `AGENT007` a
+later Syngraphe wrote the block and only the running build is too old to vouch for it. Both are
+warnings, which `--strict` still fails on. See
+[body revisions](/reference/managed-blocks#body-revisions).
 
 ### Claude — `CLAUDE`
 
@@ -76,7 +80,8 @@ It is a warning, which `--strict` still fails on.
 | `CLAUDE003` | error    | `CLAUDE.md` contains duplicate Syngraphe blocks.                            |
 | `CLAUDE004` | error    | The markers in `CLAUDE.md` are unbalanced.                                  |
 | `CLAUDE005` | warning  | A setup Syngraphe deliberately leaves alone, such as a symlink pointing elsewhere. |
-| `CLAUDE006` | warning  | The `CLAUDE.md` block still holds a body an earlier Syngraphe version wrote. Reserved: this body has had no superseded version yet. |
+| `CLAUDE006` | warning  | The `CLAUDE.md` block still holds a body an earlier Syngraphe version wrote. Run `syngraphe init` to update it. |
+| `CLAUDE007` | warning  | The `CLAUDE.md` block declares a body revision newer than this Syngraphe knows. Upgrade Syngraphe to validate it. |
 
 A missing integration is a warning, not an error: an agent nobody uses here needs no file. Nothing at
 all is reported for a repository that shows no sign of using Claude.

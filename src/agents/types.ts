@@ -41,6 +41,7 @@ export interface AgentIntegrationState {
 export interface AgentFindingCodes {
   missing: string;
   outdated: string;
+  newer: string;
   drift: string;
   duplicate: string;
   malformed: string;

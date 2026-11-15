@@ -11,14 +11,21 @@ const AGENTS_CODES = {
   malformed: "AGENT004",
   conflict: "AGENT005",
   outdated: "AGENT006",
+  newer: "AGENT007",
 } as const;
 
 /**
  * An outdated block is not an integrity failure: the file says what an older
  * Syngraphe meant it to say, and `syngraphe init` updates it without losing
- * anything. It is a warning so `--strict` runs still surface it.
+ * anything. A newer block is not one either: a later Syngraphe wrote it, and
+ * only this build is too old to vouch for it. Both are warnings so `--strict`
+ * runs still surface them.
  */
-const OUTDATED_SEVERITY: Severity = "warning";
+const VERSION_SKEW_SEVERITY: Severity = "warning";
+
+function severityOf(status: string): Severity {
+  return status === "outdated" || status === "newer" ? VERSION_SKEW_SEVERITY : "error";
+}
 
 /** The `AGENTS.md` managed block is present, unique and unmodified. */
 export const agentsBootstrapCheck: Check = {
@@ -36,7 +43,7 @@ export const agentsBootstrapCheck: Check = {
 
     findings.push({
       code: AGENTS_CODES[state.status],
-      severity: state.status === "outdated" ? OUTDATED_SEVERITY : "error",
+      severity: severityOf(state.status),
       category: "agents",
       file: AGENTS_FILE,
       message: state.message ?? `${AGENTS_FILE} integration is not valid.`,
@@ -73,9 +80,9 @@ export function createIntegrationCheck(integration: AgentIntegration): Check {
       if (state.status === "missing" && !detection.present) return findings;
 
       const severity: Severity =
-        state.status === "missing" || state.status === "skipped" || state.status === "outdated"
+        state.status === "missing" || state.status === "skipped"
           ? "warning"
-          : "error";
+          : severityOf(state.status);
       const code = state.status === "skipped" ? codes.conflict : codes[state.status];
 
       findings.push({

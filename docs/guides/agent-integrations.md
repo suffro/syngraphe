@@ -13,7 +13,7 @@ expected to read, so Syngraphe puts its pointer there and nowhere else:
 
 ```md
 <!-- syngraphe:start version="1" -->
-<!-- Managed by Syngraphe. Do not edit this block manually. -->
+<!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->
 
 This repository maintains shared project context in `.context/`.
 
@@ -65,7 +65,7 @@ Claude Code reads `CLAUDE.md`, so the shim is one import:
 
 ```md
 <!-- syngraphe:start version="1" -->
-<!-- Managed by Syngraphe. Do not edit this block manually. -->
+<!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->
 @AGENTS.md
 <!-- syngraphe:end -->
 ```

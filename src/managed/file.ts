@@ -22,6 +22,7 @@ export type ManagedFileStatus =
   | "ready"
   | "missing"
   | "outdated"
+  | "newer"
   | "drift"
   | "duplicate"
   | "malformed"
@@ -42,12 +43,15 @@ export interface ManagedFileState {
  *
  * `supersededBodies` are bodies earlier Syngraphe versions wrote for this same
  * file. They separate a block that is merely old from one a person edited.
+ * `isNewer` recognises bodies a later Syngraphe wrote, which this build can
+ * neither validate nor safely replace; without it every unknown body is drift.
  */
 export async function inspectManagedFile(
   repository: ReadOnlyRepository,
   path: string,
   expectedBody: string,
   supersededBodies: readonly string[] = [],
+  isNewer: (body: string) => boolean = () => false,
 ): Promise<ManagedFileState> {
   const kind = await repository.kind(path);
 
@@ -104,6 +108,17 @@ export async function inspectManagedFile(
         "Run `syngraphe init` to update it; only the text between the markers changes.",
       );
     case "drift":
+      if (isNewer(block.block.body)) {
+        return state(
+          path,
+          kind,
+          content,
+          "newer",
+          block,
+          `The Syngraphe block in ${path} was written by a newer Syngraphe version.`,
+          "This build cannot validate it and leaves it unchanged. Upgrade Syngraphe to check it.",
+        );
+      }
       return state(
         path,
         kind,
@@ -167,6 +182,14 @@ export function planManagedFile(
   switch (fileState.status) {
     case "ready":
       plan.unchanged.push({ path: fileState.path, reason: "already up to date" });
+      return plan;
+
+    case "newer":
+      // Replacing it would downgrade a block a later Syngraphe wrote on purpose.
+      plan.unchanged.push({
+        path: fileState.path,
+        reason: "written by a newer Syngraphe version; not downgraded",
+      });
       return plan;
 
     case "missing":

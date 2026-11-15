@@ -10,7 +10,13 @@ import { emptyPlan, type Plan } from "../../core/plan.ts";
 import type { ReadOnlyRepository } from "../../core/repository.ts";
 import { toLf } from "../../core/text.ts";
 import { inspectManagedFile, planManagedFile } from "../../managed/file.ts";
-import { AGENTS_FILE, CLAUDE_FILE, CLAUDE_MANAGED_BODY } from "../../templates/agents.ts";
+import {
+  AGENTS_FILE,
+  CLAUDE_FILE,
+  CLAUDE_MANAGED_BODY,
+  isNewerManagedBody,
+  SUPERSEDED_CLAUDE_BODIES,
+} from "../../templates/agents.ts";
 import type { AgentDetection, AgentIntegration, AgentIntegrationState } from "../types.ts";
 
 export const CLAUDE_PATCH_SUMMARY = `@${AGENTS_FILE} compatibility import`;
@@ -31,6 +37,7 @@ export const claudeIntegration: AgentIntegration = {
     malformed: "CLAUDE004",
     conflict: "CLAUDE005",
     outdated: "CLAUDE006",
+    newer: "CLAUDE007",
   },
 
   async detect(repository: ReadOnlyRepository): Promise<AgentDetection> {
@@ -59,7 +66,7 @@ export const claudeIntegration: AgentIntegration = {
       };
     }
 
-    const fileState = await inspectManagedFile(repository, CLAUDE_FILE, CLAUDE_MANAGED_BODY);
+    const fileState = await inspectClaudeFile(repository);
 
     // A hand-written import is a correct integration; do not add a second one.
     if (
@@ -81,7 +88,12 @@ export const claudeIntegration: AgentIntegration = {
   async planIntegration(repository: ReadOnlyRepository): Promise<Plan> {
     const state = await this.inspect(repository);
 
-    if (state.status === "ready" || state.status === "native" || state.status === "skipped") {
+    if (
+      state.status === "ready" ||
+      state.status === "native" ||
+      state.status === "skipped" ||
+      state.status === "newer"
+    ) {
       const plan = emptyPlan();
       plan.unchanged.push({
         path: CLAUDE_FILE,
@@ -90,8 +102,6 @@ export const claudeIntegration: AgentIntegration = {
       return plan;
     }
 
-    // `outdated` is reachable only once this body has a superseded version;
-    // the branch exists so that change stays a template-only edit.
     if (state.status !== "missing" && state.status !== "outdated") {
       const plan = emptyPlan();
       plan.conflicts.push({
@@ -102,10 +112,21 @@ export const claudeIntegration: AgentIntegration = {
       return plan;
     }
 
-    const fileState = await inspectManagedFile(repository, CLAUDE_FILE, CLAUDE_MANAGED_BODY);
+    const fileState = await inspectClaudeFile(repository);
     return planManagedFile(fileState, CLAUDE_MANAGED_BODY, CLAUDE_PATCH_SUMMARY);
   },
 };
+
+/** Inspection and planning must classify the block against the same bodies. */
+function inspectClaudeFile(repository: ReadOnlyRepository) {
+  return inspectManagedFile(
+    repository,
+    CLAUDE_FILE,
+    CLAUDE_MANAGED_BODY,
+    SUPERSEDED_CLAUDE_BODIES,
+    isNewerManagedBody,
+  );
+}
 
 function ready(files: string[], details: string): AgentIntegrationState {
   return { status: "ready", files, message: null, details };
