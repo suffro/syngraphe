@@ -13,6 +13,14 @@ file was started.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-15
+
+The first stable release. From here on, the
+[compatibility policy](https://syngraphe.dev/reference/compatibility) applies. Its contents were
+published first as `1.0.0-rc.1`. Before release, that candidate was checked against six real
+repositories initialized by earlier versions, and against a monorepo with a nested context written by
+0.4.0.
+
 ### Added
 
 - Managed bodies declare a body revision in their first line:
@@ -40,8 +48,9 @@ file was started.
 - Run `syngraphe init` once after upgrading. Until then `check` reports `AGENT006` and `CLAUDE006`
   warnings, and `init` changes only the text between the markers.
 - Upgrade every Syngraphe that checks the repository at the same time, including CI jobs and the
-  GitHub Action. A 0.4.x CLI, or an Action older than this release, reports `AGENT002` "modified
-  manually" on blocks written by this version, because it predates body revisions.
+  GitHub Action. `action-v1` moves to `action-v1.2.0`, released from the same commit. A 0.4.x CLI,
+  or an Action older than `action-v1.2.0`, reports `AGENT002` "modified manually" on blocks written
+  by this version, because it predates body revisions.
 
 ## [0.4.1] - 2026-09-20
 
@@ -136,7 +145,8 @@ this release.
 - Exit codes `0`–`4`.
 - The `syngraphe` and `syg` executables.
 
-[Unreleased]: https://github.com/suffro/syngraphe/compare/032f990...HEAD
+[Unreleased]: https://github.com/suffro/syngraphe/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/suffro/syngraphe/compare/032f990...v1.0.0
 [0.4.1]: https://github.com/suffro/syngraphe/compare/f2f250f...032f990
 [0.4.0]: https://github.com/suffro/syngraphe/compare/a3f71fe...f2f250f
 [0.3.0]: https://github.com/suffro/syngraphe/compare/cb553e5...a3f71fe
