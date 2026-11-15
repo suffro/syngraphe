@@ -173,5 +173,22 @@ describe("bundled GitHub Action", () => {
       if (step.uses && step.uses !== "./")
         assert.match(step.uses, /^actions\/[a-z-]+@[0-9a-f]{40}$/);
     assert(steps.some((step) => step.run === "npm run action:check"));
+    assert(steps.some((step) => step.run === "npm run package:check"));
+  });
+
+  it("tests the oldest Node.js release the package claims to support", async () => {
+    const workflow = parse(
+      await readFile(new URL("../.github/workflows/ci.yml", import.meta.url), "utf8"),
+    );
+    const manifest = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8"),
+    );
+    const floor = /^>=(\d+\.\d+\.\d+)$/.exec(manifest.engines.node)?.[1];
+    assert(floor, `engines.node must be a plain lower bound, found ${manifest.engines.node}`);
+    const include: { node?: string }[] = workflow.jobs.verify.strategy.matrix.include ?? [];
+    assert(
+      include.some((entry) => entry.node === floor),
+      `CI must run on Node.js ${floor}, the engines lower bound`,
+    );
   });
 });

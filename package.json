@@ -8,10 +8,10 @@
   "homepage": "https://syngraphe.dev",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Suffro/syngraphe.git"
+    "url": "git+https://github.com/suffro/syngraphe.git"
   },
   "bugs": {
-    "url": "https://github.com/Suffro/syngraphe/issues"
+    "url": "https://github.com/suffro/syngraphe/issues"
   },
   "keywords": [
     "repository-context",
@@ -37,10 +37,11 @@
   "files": [
     "dist",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build",
+    "prepack": "npm run build",
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node --test \"test/**/*.test.ts\"",
@@ -51,7 +52,8 @@
     "docs:preview": "npm --prefix docs run preview",
     "action:build": "node scripts/build-action.mjs",
     "action:check": "node scripts/build-action.mjs --check",
-    "test:action": "node --test \"test/action*.test.ts\""
+    "test:action": "node --test \"test/action*.test.ts\"",
+    "package:check": "node scripts/check-package.mjs"
   },
   "dependencies": {
     "commander": "^14.0.1"

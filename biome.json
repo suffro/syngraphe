@@ -11,7 +11,8 @@
       "test/**/*.ts",
       "*.json",
       "action/src/**/*.ts",
-      "scripts/build-action.mjs"
+      "scripts/build-action.mjs",
+      "scripts/check-package.mjs"
     ]
   },
   "formatter": {
