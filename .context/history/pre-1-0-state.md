@@ -155,7 +155,7 @@ These tags are independent of the npm CLI; package release metadata has not been
 
 ## Next
 
-- Release 1.0.0: the plan is in `state/release-1-0.md`, proposed on 2026-11-15 and awaiting
+- Release 1.0.0: the plan (now archived as `history/release-1-0.md`) was proposed on 2026-11-15 and awaiting
   approval and answers to its decisions D1–D5. Nothing in it has been executed.
 - Confirm hosted CI for the quick-audit follow-up on Ubuntu, macOS and Windows.
 - Carry `AGENT-POLICY.md`, `init --policy`, `policy add` and the new `AGENT006`/`CLAUDE006` warnings

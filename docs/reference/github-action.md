@@ -12,9 +12,9 @@ repository, not a Node setup step, package install or API token. It never runs c
 repository or modifies its context.
 
 Action releases have their own version series: `action-v1.0.0` was the first release and
-`action-v1.1.0` the current one; `action-v1` tracks compatible updates. These tags are independent of the npm CLI version.
+`action-v1.2.0` the current one; `action-v1` tracks compatible updates. These tags are independent of the npm CLI version.
 For reproducibility, replace the tag in examples with the reviewed full commit SHA from the
-[release](https://github.com/suffro/syngraphe/releases/tag/action-v1.1.0).
+[release](https://github.com/suffro/syngraphe/releases/tag/action-v1.2.0).
 Use `uses: ./` to test a checked-out copy of the Action in its own repository.
 
 ## Basic use

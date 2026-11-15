@@ -48,6 +48,15 @@ git diff --quiet "$(git describe --tags --abbrev=0 --match 'action-v*.*.*')" HEA
    Add `--prerelease` for an rc.
 7. Apply the release-train rule.
 
+For a release candidate, run the published rc against real contexts before the final tag. Good
+candidates are the maintainer's public repositories that already use Syngraphe, such as
+`scrollcase`, `desktopr`, `decguard` and `decport`. Work on local clones and push nothing. Compare
+`check --all` before and after `init`, confirm that `git diff` only touches text between markers,
+and confirm that a second `init` changes nothing.
+
+After a publish, the registry can take a few minutes before it serves the tarball. A 404 in that
+window is not a failed release; the workflow log line `+ syngraphe@X.Y.Z` is.
+
 Never retarget an exact version tag and never republish a version. A broken release is fixed by the
 next one.
 

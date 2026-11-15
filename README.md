@@ -280,7 +280,7 @@ job summaries and a JSON report. It bundles Syngraphe and needs no package insta
     strict: 'true'
 ```
 
-Action releases use separate tags: `action-v1.1.0` for an exact release and `action-v1` for
+Action releases use separate tags: `action-v1.2.0` for an exact release and `action-v1` for
 compatible updates. Pin a reviewed full commit SHA when reproducibility is required.
 See the [Action reference](docs/reference/github-action.md) for inputs,
 outputs, report-only mode and optional budget enforcement.

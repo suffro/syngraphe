@@ -12,9 +12,45 @@ the maintainer:
 
 Every ⚠ step still waits for its own explicit approval.
 
+## Outcome
+
+**Released on 2026-11-15.** This plan is complete and archived. Commits on `main`, in order:
+
+| Commit | Content |
+| --- | --- |
+| `5f48eb9` | body revisions |
+| `7bf233e` | release pipeline and changelog |
+| `c7c3264` | API and compatibility docs |
+| `19b7804` | state archive |
+| `f4cfbb8` | `1.0.0-rc.1` |
+| `91daa2b` | `1.0.0` |
+
+- `action-v1.1.0` was released at `c5d5b2f`, then `action-v1.2.0` at `91daa2b`. `action-v1` follows
+  the latter.
+- npm `1.0.0-rc.1` (`next`) and `1.0.0` (`latest`) were both published by `release.yml` through
+  trusted publishing.
+  - Read back from the registry: `gitHead` equals the tagged commit, and SLSA v1 provenance is
+    present.
+  - `npm audit signatures` verified the registry signatures and the attestation.
+  - The installed 1.0.0 reports this repository clean.
+  - The registry needed a few minutes after each publish before it served the tarball.
+- Hosted CI passed on all four jobs, including Node 22.18.0, for `19b7804`, `f4cfbb8` and `91daa2b`.
+- **Release candidate.** The published rc was run against six of the maintainer's repositories
+  already initialized with Syngraphe, using local clones with nothing pushed:
+  - it added only the expected `AGENT006`/`CLAUDE006` warnings;
+  - `init` changed only text between markers and was idempotent on a second run;
+  - every check came back clean afterwards, except one pre-existing `STATE001`.
+  - Skew behaved as documented:
+    - CLI 0.4.1 and `action-v1.1.0` report `AGENT002` on 1.0-written blocks;
+    - a revision-2 block gives `AGENT007` and `init` leaves it unchanged;
+    - a 0.4.0 monorepo with a nested scope upgrades cleanly.
+- Left to the maintainer:
+  - Marketplace publication for the Action releases;
+  - optionally pointing `next` at 1.0.0, since `npm dist-tag` needs a logged-in maintainer.
+
 ## Progress
 
-As of 2026-11-15. The work is in the working tree, **uncommitted**.
+The record kept while the work was in progress.
 
 - **Phase 1:** done, except the Marketplace checkbox, which is the maintainer's.
   - Evidence: the bundle at `c5d5b2f` is clean on a 0.4.1 fixture, reports `AGENT006` (warning,
