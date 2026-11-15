@@ -1,0 +1,185 @@
+# Current State
+
+## Current focus
+
+Syngraphe implements initialization, integrity checks, statistics and document lifecycle helpers,
+including first-class truth documents and stable JSON projections of every mutating dry-run plan,
+with explicit package scopes for nested/monorepo context. A bundled GitHub Action now adds
+runner annotations, summaries and versioned reports on top of the same core. Schema v1 and
+single-scope check JSON remain unchanged; the root managed block gained one line, and repositories
+still carrying the previous body are updated by `init` rather than reported as drift.
+The Action is released as `action-v1.0.0`, with `action-v1` for compatible updates.
+These tags are independent of the npm CLI; package release metadata has not been changed.
+
+## Recent relevant changes
+
+- `docs/guides/hol-guard.md` documents installation, agent setup, the local opt-in for
+  `command.syngraphe`, covered mutations, and the dry-run/review workflow, using HOL Guard's
+  upstream documentation and canonical extension source. It is linked from the Guides sidebar.
+  A matching transparent badge at the top links to the
+  [official extension listing](https://hol.org/guard/extensions/command.syngraphe) in a new tab.
+  The example requires an initialized context; Codex setup includes `hol-guard doctor codex`,
+  and the command-inspection link targets the upstream "Understand a paused command" section.
+  Tests, builds and automated checks were not run for this documentation change, as requested.
+- The optional HOL Guard command extension for Syngraphe was merged on 2026-10-02 in
+  [hashgraph-online/hol-guard#2929](https://github.com/hashgraph-online/hol-guard/pull/2929).
+  The documentation home page carries a transparent outlined badge below the hero, linking to
+  the integration guide and describing the support as an opt-in command extension. Its local
+  `docs/public/static/png/hol-guard-mark.png` is the unmodified
+  [official dashboard mark](https://github.com/hashgraph-online/hol-guard/blob/main/dashboard/public/brand/Logo_Icon_Dark.png),
+  displayed in monochrome for the site's light and dark themes. No tests or builds were run for
+  this styling change, as requested.
+- `AGENT-POLICY.md` is a new optional root file, seeded by `syngraphe init --policy` or
+  `syngraphe policy add` and never managed afterwards. `AGENTS.md` points at it with one conditional
+  line inside the managed block, which changed the canonical bootstrap bytes for the first time. To
+  keep that from reporting drift everywhere, managed blocks now have an `outdated` state: a body
+  matching one Syngraphe published earlier is updated in place by `init` and reported as `AGENT006`
+  (warning) by `check`. Drift is untouched. The requested interactive overwrite prompt was not built;
+  `policy add` refuses and exits non-zero, and `--force` replaces. See
+  `decisions/0008-the-policy-file-is-a-seed-and-managed-bodies-can-age.md`.
+- The quick-audit follow-up fixes `LINK001` case portability and Markdown links with parentheses.
+  Each component is checked against directory entries, and the destination scanner handles nested
+  and escaped parentheses, angle delimiters and titles. No finding code or JSON version changes.
+- Directory-swap protection is strengthened with per-operation parent identity checks across
+  staging, publication, fallback and cleanup, exclusive temporary opens, and one-level directory
+  creation. Missing-path/IO/disk-full link failures no longer trigger fallback writes. Tests first
+  reproduced the unsafe interleavings. This is mitigation, not elimination of hostile swaps within
+  an individual check/syscall interval; the public safety model now states that limit. See
+  `../decisions/0007-directory-swap-hardening.md`.
+- Local verification of this follow-up on macOS, Node 26.4: all 210 tests passed (28 suites),
+  plus typecheck, lint, CLI build, docs build, regenerated Action bundle with a passing drift check,
+  and repository `check --all`. Hosted CI for the follow-up remains to be confirmed after push;
+  Windows and Linux were not executed locally.
+
+- The write surface hardening plan is complete; see `history/write-surface-hardening.md`. Patches
+  are verified in the publish step: `Repository.replace` renames the file aside, compares the moved
+  bytes and only then links the new file into place, so a concurrent edit is kept and the apply
+  fails (`decisions/0006-patch-verification-in-the-publish-step.md`). Managed files are patched only
+  from exact UTF-8 bytes; otherwise `init` reports a conflict and `check` reports `AGENT005` or
+  `CLAUDE005`. Inspectors, planners, integrations and the check context take `ReadOnlyRepository`,
+  and `test/dry-run.test.ts` compares the working tree and Git state around every mutating dry run.
+  `status` counts only regular Markdown files, `LINK001` rejects broken or escaping symlinks, and a
+  `.context/` without a declared protocol is identified only by its complete standard shape. Every
+  new guard was observed failing first: against the blind rename, the lossy decode, and temporary
+  planner-write and `git add` probes that were then removed.
+- Latest local verification, on macOS: 187 tests passed (27 suites), plus typecheck, lint, CLI
+  build, documentation build, `action:build` with `action:check` reporting the bundle matches its
+  sources, and temporary-repository checks that `init` leaves a `0xFF` `AGENTS.md` byte-identical
+  and `state archive --dry-run` leaves `git status` and the `.git/index` hash unchanged. Not
+  exercised locally: real Windows sharing semantics and filesystems without hard links, which the
+  `linkFile` and `renameFile` test seams simulate. The first hosted CI run failed on Ubuntu, because
+  an inline `README`-style reference written in lowercase resolved only on a case-insensitive
+  filesystem, and on Windows, because a concurrent rename through an earlier handle moved the aside
+  file on before it was read and surfaced as a preserved-aside error instead of a changed file. Both
+  are fixed locally; hosted CI has not re-run.
+- `create` operations are now exclusive at the filesystem level. The apply preflight could not keep
+  two concurrent runs from creating the same missing path, because `Repository.write` published
+  every operation with a rename: both passed the `missing` check and the second rename replaced the
+  first file. `applyPlan` now publishes creates through `Repository.create`, which links the staged
+  file into place and reports the destination taken instead of replacing it. Updates keep their
+  stale-content check and rename. `test/plan.test.ts` holds the invariant with a barrier that puts
+  concurrent applies in the race window deliberately; the tests were observed failing against the
+  rename-based publish.
+- Previous statistics/document/monorepo work was committed and pushed to `origin/main` as
+  `e7a5bf50d9a4be72cd751fba4ec5bb91e58acb96`; the remote hash was read back successfully.
+- Root `action.yml` provides `check`, `stats`, and `check-and-stats`, checkout/scope selection,
+  monorepo discovery, strict and report-only validation, and an optional per-scope budget gate.
+- Action reports are stored under runner temp, with bounded summaries and escaped file/line
+  annotations. The bundle runs standalone; no npm install, API token or target-code execution.
+- The new CI matrix targets Linux, macOS and Windows, with the local Action before dependency
+  installation, metadata/runtime tests, and deterministic bundle/third-party-notice checks.
+  GitHub release `action-v1.0.0` and compatibility tag `action-v1` both resolve to
+  `9b86b8b8109d8f58c81782c466cb9774d1cb6367`. The public release was verified through GitHub's API.
+  Marketplace publication remains pending: GitHub documents the release-editor checkbox, with no
+  corresponding option in the public release API or `gh release`; Computer Use is unavailable
+  and the user prefers terminal operations. See `decisions/0005-bundled-github-action.md`.
+
+- `stats` reports bytes, words, estimated tokens, active/history totals, large Markdown documents
+  and exact duplicates; its token budget is advisory and JSON is independently versioned.
+- `truth`, `decision`, `state`, and `history` support `new` and `list`. Generic truth documents are
+  intentionally only a top-level heading. `state archive` preserves current state in a new history
+  file then resets the state template, with dry-run and preflight safety checks.
+- `init`, all four document `new` commands, and `state archive` accept `--dry-run --json`. Plan JSON
+  v1 preserves plan ordering and scope-relative paths while omitting file contents and patch states;
+  `--json` without `--dry-run` is rejected before planning or writing.
+- `--scope` selects an existing directory relative to Git root. `--all` on read-only reports
+  discovers tracked/unignored contexts. Nested agent bootstraps explain ancestor context and scope
+  selection; default root behavior is preserved. See `decisions/0004-explicit-scopes-and-context-tools.md`.
+- Documentation covers the four-category document lifecycle, independently versioned plan/check/stats
+  JSON, and explicit monorepo discovery.
+- Verification at the Action release, on macOS with Node 26.4: all 151 tests passed (15 Action tests), including
+  truth creation/listing/concurrency and the plan JSON contract. Typecheck, lint, CLI/Action builds,
+  Action bundle synchronization, documentation build, clean-snapshot repository `check --all`, and
+  representative temporary-repository CLI exercises passed. Hosted CI run `34542006024` passed on
+  Ubuntu, macOS and Windows at the release commit:
+  130 tests passed with no skips on each OS, plus standalone Action execution, bundle verification,
+  typecheck, lint and build. The first run exposed Windows checkout CRLF conversion; repository
+  text now uses LF via `.gitattributes`, also verified with `core.autocrlf=true` locally.
+
+- Initial implementation of the package, CLI, core, managed blocks, integrations and checks.
+- Test suite covering managed-block behaviour, path safety, initialization (idempotency,
+  preservation, dry-run parity) and every check.
+- README documenting scope, safety properties, finding codes and exit codes.
+- The CLI is installed under two command names: `syngraphe` (canonical, used in all documentation and
+  in the managed block) and the shorthand `syg`.
+- Documentation site in `docs/` (VitePress): getting started, guides, reference and concepts, with a
+  monochrome theme built from the two logo colours. Deployed as a Cloudflare Pages project rooted at
+  `docs/`; the production hostname is declared once in `docs/.vitepress/config.mts`.
+- The managed block's second line now says to keep the context accurate in the same change, without
+  a "significant changes" threshold. Changing it again after publication would report drift in every
+  initialized repository.
+- The reference check distinguishes prose from pointers, after the archived brief under `history/`
+  produced six false `LINK001` findings. See `decisions/0002-inline-code-references-are-prose.md`.
+- The docs site publishes a Markdown surface for agents: `llms.txt`, `llms-full.txt`, a `.md` twin
+  per page, `Accept: text/markdown` negotiation through a Cloudflare Pages Function, per-page
+  Markdown and "Ask an AI" menus, and a `robots.txt` that names the assistant crawlers explicitly.
+- The search-result icon was Google's own choice, not the site's: with only `/static/icon.ico`
+  declared and `/favicon.ico` returning the 404 page, Google had cached the bare mark — a
+  transparent, full-bleed glyph its round crop cut into, and nearly invisible on a dark results
+  page. The icon now ships at `/favicon.ico` (16/32/48 rendered from the logo, the original 256
+  entry carried over byte-for-byte) plus 96/192 PNGs and a 180 `apple-touch-icon`, all the same
+  opaque square. Nothing in markup selects a search-result logo; the favicon is that logo, so the
+  fix is the file and the declaration. The JSON-LD graph gained an `Organization` with a `logo`,
+  which feeds knowledge panels rather than the result icon.
+- The docs distinguish generated content from illustration explicitly. Every block that is invented
+  prose carries an `ExampleNote` label above it, outside the fence; blocks that are real output or
+  real generated files are labelled too. The quickstart was the page where this mattered most: its
+  filled-in `truth/architecture.md` read as something `init` writes, which it never does.
+- The quickstart now offers two routes in a `Tabs` group — Quick (no `--dry-run`) and Guided — plus
+  a "What `init` writes" section listing all nine files. Its terminal transcripts were re-captured
+  from real runs rather than edited by hand.
+- The manifest declares `"protocol": "repository-context"`, added to schema v1 rather than to a v2.
+  It is what identifies a `.context/` directory, so the generic name can stay generic; a manifest
+  naming another protocol is `unrelated`, and a manifest with no `protocol` falls back to the shape
+  test and reports `MANIFEST005`. See `decisions/0003-the-manifest-declares-the-protocol.md`.
+
+## Next
+
+- Release 1.0.0: the plan is in `state/release-1-0.md`, proposed on 2026-11-15 and awaiting
+  approval and answers to its decisions D1–D5. Nothing in it has been executed.
+- Confirm hosted CI for the quick-audit follow-up on Ubuntu, macOS and Windows.
+- Carry `AGENT-POLICY.md`, `init --policy`, `policy add` and the new `AGENT006`/`CLAUDE006` warnings
+  into the next CLI release notes, stating explicitly that upgrading rewrites the `AGENTS.md` block
+  in place on the next `init`.
+- Carry the user-visible changes into the next CLI release notes. The repository keeps no changelog
+  file, so none was invented: `init` refuses a non-UTF-8 `AGENTS.md` or `CLAUDE.md` and `check`
+  reports it; a patch fails instead of overwriting an edit made after planning; `status` no longer
+  counts symlinks, directories or a README whose name uses another letter case; `LINK001` reports broken and
+  out-of-repository symlinked references; a `.context/` without a declared protocol is `unrelated`
+  unless its whole top level is the standard layout with at least one standard document. Decide
+  whether to start a changelog.
+- Include the case-exact reference check, parenthesized Markdown destinations and directory-swap
+  mitigation (including its explicit trust limit) in the next CLI release notes.
+- Complete Marketplace publication in the GitHub release editor for `action-v1.0.0`, then verify
+  the public listing. Release URL: https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0
+
+- After the icon change is deployed, request indexing of the home page in Search Console so the
+  cached favicon is refreshed; Google documents that this can take days to weeks.
+- Confirm the `syngraphe.dev` domain and Pages project before announcing the docs URL.
+- Use the tool on real repositories and collect friction before adding surface.
+- Candidates for later versions, none of them started: `doctor`, `update`, `reconcile`, and an
+  explicit destructive removal command with a confirmation phrase.
+
+## Blockers
+
+None.
