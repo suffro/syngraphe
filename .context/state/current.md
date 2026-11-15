@@ -8,7 +8,8 @@ now applies to every change. No feature work is in progress.
 - npm: `latest` is 1.0.0, published with provenance through `release.yml`. `next` still points at
   `1.0.0-rc.1`.
 - Action: `action-v1.2.0` was built from the same commit as 1.0.0 (`91daa2b`), and `action-v1`
-  points there.
+  points there. It is listed on the GitHub Marketplace as "Syngraphe Repository Context"; the
+  listing was verified live on 2026-11-15 showing `action-v1.2.0`.
 
 How it was planned, decided, verified and released is recorded in `history/release-1-0.md`. The
 procedure for the next release is `truth/releasing.md`.
@@ -27,8 +28,6 @@ procedure for the next release is `truth/releasing.md`.
 
 ## Next
 
-- Maintainer: tick Marketplace publication in the GitHub release editor for `action-v1.2.0`. There
-  is no API for it, and it was never done for `action-v1.0.0` or `action-v1.1.0` either.
 - Maintainer, optional: `npm dist-tag add syngraphe@1.0.0 next`, so `next` is not older than
   `latest`.
 - The maintainer's repositories that already use Syngraphe still carry 0.x blocks. They report
