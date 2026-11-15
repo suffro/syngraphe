@@ -11,10 +11,10 @@ step. The Action bundles the same checks and statistics code as the CLI. It need
 repository, not a Node setup step, package install or API token. It never runs code from the target
 repository or modifies its context.
 
-Action releases have their own version series: `action-v1.0.0` identifies the first release;
-`action-v1` tracks compatible updates. These tags are independent of the npm CLI version.
+Action releases have their own version series: `action-v1.0.0` was the first release and
+`action-v1.1.0` the current one; `action-v1` tracks compatible updates. These tags are independent of the npm CLI version.
 For reproducibility, replace the tag in examples with the reviewed full commit SHA from the
-[release](https://github.com/suffro/syngraphe/releases/tag/action-v1.0.0).
+[release](https://github.com/suffro/syngraphe/releases/tag/action-v1.1.0).
 Use `uses: ./` to test a checked-out copy of the Action in its own repository.
 
 ## Basic use
@@ -186,7 +186,9 @@ Create an immutable annotated `action-vMAJOR.MINOR.PATCH` tag, then update the c
 `action-vMAJOR` compatibility tag only after validation. Publish its GitHub release and select
 Marketplace publication in the release editor. Verify the release and public listing separately;
 a GitHub release alone does not prove Marketplace publication. Never retarget an exact version tag.
-The npm CLI keeps its own version and publication process.
+The npm CLI keeps its own version and publication process. Whenever a CLI release changes core
+behaviour, the Action is released from the same commit, so `action-vMAJOR` never lags behind the
+CLI; see [compatibility and versioning](/reference/compatibility#the-github-action).
 
 GitHub references: [JavaScript actions](https://docs.github.com/en/actions/tutorials/create-actions/create-a-javascript-action),
 [metadata and Node 24](https://docs.github.com/en/actions/reference/workflows-and-actions/metadata-syntax),

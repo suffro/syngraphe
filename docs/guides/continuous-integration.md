@@ -44,7 +44,7 @@ npx syngraphe check
 
 :::
 
-Use `action-v1` for compatible Action updates or `action-v1.0.0` for the exact release.
+Use `action-v1` for compatible Action updates or an exact release such as `action-v1.1.0`.
 Pin a reviewed full commit SHA for reproducibility. Action tags are separate from npm CLI tags.
 The repository's own CI uses `uses: ./` to exercise the bundle. The Action supplies its Node runtime,
 so consumers need no `setup-node` or npm installation step.

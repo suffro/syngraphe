@@ -1,14 +1,15 @@
 ---
 title: Scope and non-goals
-description: What v0.1 does, what Syngraphe will never do, and what is postponed rather than refused.
+description: What Syngraphe does, what it will never do, and what is postponed rather than refused.
 order: 5
 ---
 
 # Scope and non-goals
 
-## What v0.1 does
+## What Syngraphe does
 
-- `syngraphe init`, with human or JSON `--dry-run` plans
+- `syngraphe init`, with human or JSON `--dry-run` plans, and `--policy`
+- `syngraphe policy add`, which seeds `AGENT-POLICY.md` and replaces it only with `--force`
 - `syngraphe status`
 - `syngraphe check`, with `--json` and `--strict`
 - `syngraphe stats`, with `--json` and an advisory `--budget`
@@ -16,12 +17,14 @@ order: 5
   supports content-free plan JSON with `--dry-run --json`
 - nested contexts selected by `--scope`, and `--all` for monorepo reports
 - the `.context/` schema v1 and its templates
-- managed blocks in `AGENTS.md` and `CLAUDE.md`
+- managed blocks in `AGENTS.md` and `CLAUDE.md`, whose bodies declare a revision
 - the agent-integration registry: Claude (shim), Cursor and Codex (native)
 - the deterministic check registry, with stable finding and exit codes
 - the bundled GitHub Action with annotations, job summaries and exportable reports
+- the [programmatic API](/reference/api) the CLI is built on
 
-That is the whole surface. It is small because the small version is the one you can adopt this
+That is the whole surface, and from 1.0.0 it is covered by the
+[compatibility policy](/reference/compatibility). It is small because the small version is the one you can adopt this
 afternoon and audit in a single `git diff`.
 
 ## Never
@@ -73,7 +76,7 @@ irreplaceable human writing, and require an explicit confirmation phrase. It wil
 
 **Per-check suppression.** Some repositories will want to silence one check. Doing it well means
 deciding where the configuration lives and how a suppression expires; doing it badly means a config
-file that quietly disables everything. Not in v0.1.
+file that quietly disables everything. Not yet.
 
 ## Not planned
 

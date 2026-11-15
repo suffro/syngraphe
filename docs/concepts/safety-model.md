@@ -183,12 +183,12 @@ daemon, and does not modify any configuration outside the files listed in its pl
 | Patch a file that is not valid UTF-8         | Bytes that do not decode would be rewritten.                         |
 | Downgrade an unsupported schema              | The version describes the files; lowering it makes it a lie.         |
 | Rewrite existing context files to templates  | Your content is not Syngraphe's to normalise.                        |
-| Delete anything                              | v0.1 has no destructive operation at all.                            |
+| Delete anything                              | Syngraphe has no destructive operation at all.                       |
 
 ## Destructive removal, and why it is not here
 
-A command that removes the repository context will exist eventually. It is deliberately absent from
-v0.1, and when it arrives it must:
+A command that removes the repository context will exist eventually. It is deliberately absent
+today, and when it arrives it must:
 
 - show exactly what would be removed, before removing it;
 - preserve all user-authored content outside managed blocks;

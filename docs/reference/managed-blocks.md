@@ -29,7 +29,7 @@ a block declaring a version this build does not manage is reported rather than t
 
 ```md
 <!-- syngraphe:start version="1" -->
-<!-- Managed by Syngraphe. Do not edit this block manually. -->
+<!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->
 
 This repository maintains shared project context in `.context/`.
 
@@ -53,7 +53,7 @@ Syngraphe would refuse to repair. One constant body keeps the block a single com
 
 ```md
 <!-- syngraphe:start version="1" -->
-<!-- Managed by Syngraphe. Do not edit this block manually. -->
+<!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->
 @AGENTS.md
 <!-- syngraphe:end -->
 ```
@@ -97,6 +97,7 @@ property, not an aspiration — see [design decisions](/concepts/design-decision
 | `absent`              | No block in the file.                                           | Inserts one.                  |
 | `valid`               | Exactly one block, matching the expected content.               | Nothing.                      |
 | `outdated`            | Exactly one block, holding a body an earlier Syngraphe wrote.   | Updates the body on the next `init`. |
+| `newer`               | Exactly one block, declaring a body revision this build does not know yet. | Reports it as a warning. Never downgrades it. |
 | `drift`               | Exactly one block, content differs.                             | Reports it. Never overwrites. |
 | `unsupported-version` | A block whose marker declares another version.                  | Reports it.                   |
 | `duplicate`           | More than one block in the file.                                | Reports it.                   |
@@ -118,6 +119,35 @@ leaving the rest of the file byte for byte identical.
 
 Published bodies are never removed from that list. Dropping one would turn every repository still
 carrying it into an unrepairable drift report.
+
+## Body revisions
+
+The superseded list solves the problem in one direction only. A build knows every body published
+before it, but none published after it. Without more information, a block written by a newer
+Syngraphe looks like a manual edit to an older one. That happens to a CI job pinned to an older
+release, or to a teammate who has not upgraded.
+
+So every body declares its revision in its first line:
+
+```md
+<!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->
+```
+
+The revision increases whenever any canonical body changes. A block declaring a revision higher
+than the running build knows is `newer`:
+
+- `check` reports `AGENT007` (or `CLAUDE007`) as a warning;
+- `init` leaves the block exactly as it is, because replacing it would be a downgrade.
+
+Upgrading Syngraphe turns the warning into an ordinary validation.
+
+The revision is written in the body rather than as a marker attribute on purpose. Released parsers
+match the start marker exactly, so an extra attribute would make every one of them see an end marker
+without a start.
+
+Blocks written before revisions existed declare none and are compared as before. A hand edit at the
+current revision is still drift. Only a deliberate change of the number itself makes an edited
+block pass as newer, and drift reporting exists to catch accidents, not deliberate choices.
 
 ## Why drift is never repaired automatically
 
@@ -146,7 +176,7 @@ Nothing about a managed block is recorded outside the file that contains it.
 ## Using the subsystem directly
 
 Block manipulation is a generic, pure part of the package — it knows nothing about `AGENTS.md`,
-Claude, or any agent:
+Claude, or any agent. The [programmatic API](/reference/api#managed-blocks) lists each function:
 
 ```ts
 import {

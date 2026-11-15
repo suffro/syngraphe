@@ -163,7 +163,7 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
 
   ```md
   <!-- syngraphe:start version="1" -->
-  <!-- Managed by Syngraphe. Do not edit this block manually. -->
+  <!-- Managed by Syngraphe (revision 1). Do not edit this block manually. -->
   ...
   <!-- syngraphe:end -->
   ```
@@ -211,10 +211,12 @@ Syngraphe edits files people also edit by hand, so it is conservative by constru
 | `AGENT004`                | error    | `AGENTS.md` markers are unbalanced                            |
 | `AGENT005`                | error    | `AGENTS.md` cannot be managed safely                          |
 | `AGENT006`                | warning  | the `AGENTS.md` block is from an earlier Syngraphe version    |
+| `AGENT007`                | warning  | the `AGENTS.md` block is from a newer Syngraphe version       |
 | `CLAUDE001`               | warning  | Claude is used but `CLAUDE.md` has no import of `AGENTS.md`   |
 | `CLAUDE002` – `CLAUDE004` | error    | the `CLAUDE.md` block drifted, is duplicated, or is malformed |
 | `CLAUDE005`               | warning  | `CLAUDE.md` is a setup Syngraphe deliberately leaves alone    |
 | `CLAUDE006`               | warning  | the `CLAUDE.md` block is from an earlier Syngraphe version    |
+| `CLAUDE007`               | warning  | the `CLAUDE.md` block is from a newer Syngraphe version       |
 | `LINK001`                 | error    | a context document references a path that does not exist      |
 | `STATE001`                | warning  | `state/current.md` has not changed while the repository did   |
 | `STATE002`                | warning  | `state/current.md` contains only headings                     |
@@ -278,7 +280,7 @@ job summaries and a JSON report. It bundles Syngraphe and needs no package insta
     strict: 'true'
 ```
 
-Action releases use separate tags: `action-v1.0.0` for an exact release and `action-v1` for
+Action releases use separate tags: `action-v1.1.0` for an exact release and `action-v1` for
 compatible updates. Pin a reviewed full commit SHA when reproducibility is required.
 See the [Action reference](docs/reference/github-action.md) for inputs,
 outputs, report-only mode and optional budget enforcement.
@@ -296,7 +298,7 @@ outputs, report-only mode and optional budget enforcement.
 Vendor-specific configuration such as `.cursor/rules/` is detected for reporting and otherwise left
 untouched.
 
-## Scope of v0.1
+## Scope
 
 Implemented:
 
@@ -311,6 +313,11 @@ Implemented:
 - managed blocks in `AGENTS.md` and `CLAUDE.md`
 - the deterministic check registry
 - the bundled GitHub Action with annotations, summaries and JSON reports
+- the [programmatic API](docs/reference/api.md) the CLI is built on
+
+From 1.0.0, Syngraphe follows semantic versioning. The
+[compatibility policy](docs/reference/compatibility.md) states exactly what that promise covers, and
+[CHANGELOG.md](CHANGELOG.md) records every release.
 
 ## Non-goals
 

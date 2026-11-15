@@ -178,7 +178,7 @@ A warning. `CLAUDE.md` or `.claude/` exists, so Claude is clearly in use here, b
 at `AGENTS.md`. Run `syngraphe init` to add the import block.
 
 If you deliberately do not want it, the honest options are to remove the Claude signal from the
-repository or to accept the warning. There is no per-check suppression file in v0.1 — see
+repository or to accept the warning. There is no per-check suppression file yet — see
 [scope and non-goals](/concepts/scope-and-non-goals).
 
 ## `CLAUDE.md is a symlink that does not point at AGENTS.md.` — `CLAUDE005`

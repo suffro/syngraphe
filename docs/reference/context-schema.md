@@ -202,8 +202,8 @@ links may reference parent or sibling context as long as they remain inside the 
 ## Compatibility
 
 The schema version is what a future Syngraphe reads to know whether it can act. That is why the
-manifest exists at all, and why the manifest is read before anything else happens: a v0.1 build
-meeting a future layout stops with a clear message instead of half-understanding it.
+manifest exists at all, and why the manifest is read before anything else happens: an older build
+meeting a newer layout stops with a clear message instead of half-understanding it.
 
 The two fields are read in that order — `protocol` first, `schemaVersion` second. Whose directory
 this is has to be settled before what version it is: a manifest belonging to another tool has no

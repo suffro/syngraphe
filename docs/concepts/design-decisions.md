@@ -1,6 +1,6 @@
 ---
 title: Design decisions
-description: The choices behind Syngraphe v0.1, the reasoning, and the alternatives that were rejected.
+description: The choices behind Syngraphe, the reasoning, and the alternatives that were rejected.
 order: 4
 ---
 
@@ -138,8 +138,8 @@ declares "context is stale" on a timer teaches people to ignore it, which costs 
 nothing would have.
 
 **Rejected.** Age alone (a repository nobody touched for a year would be permanently red). An error
-severity (fails builds for a judgement call). A configurable threshold in v0.1 (a knob invites
-tuning the number until the warning goes away).
+severity (fails builds for a judgement call). A configurable threshold (a knob invites tuning the
+number until the warning goes away).
 
 ## `AGENTS.md` is the only bootstrap
 
@@ -161,19 +161,23 @@ conditional in the core. Agent-specific knowledge that leaks into shared code is
 become unmaintainable.
 
 **Rejected.** Conditionals in the commands (`if (agent === "claude")` in three places, guaranteed to
-diverge). A plugin system loading external modules (a security and versioning surface v0.1 has no
-use for).
+diverge). A plugin system loading external modules (a security and versioning surface Syngraphe has
+no use for).
 
-## Only two Git commands, through `execFile`
+## A few read-only Git commands, through `execFile`
 
-**Decision.** `rev-parse --show-toplevel` and `log -1 --format=%cI`, invoked with an argument array.
+**Decision.** Three read-only commands, each invoked with an argument array:
 
-**Why.** That is all v0.1 needs. `execFile` with an array cannot interpret a repository path as a
+- `rev-parse --show-toplevel` locates the repository;
+- `log -1 --format=%cI -- <path>` measures freshness;
+- `ls-files --cached --others --exclude-standard -z` discovers nested contexts for `--all`.
+
+**Why.** That is all Syngraphe needs. `execFile` with an array cannot interpret a repository path as a
 shell command. When Git cannot answer, the answer is "no information", and dependent checks stay
 silent.
 
-**Rejected.** `simple-git` or a libgit binding (a dependency and a native build for two commands).
-Shell strings (quoting bugs at best).
+**Rejected.** `simple-git` or a libgit binding, which would add a dependency and a native build for
+three commands. Shell strings, which bring quoting bugs at best.
 
 ## Stable codes from the first release
 
@@ -198,8 +202,8 @@ too old").
 
 ## No AI in the deterministic core
 
-**Decision.** No model calls anywhere in v0.1. If semantic analysis arrives, it will run through an
-installed agent and stay optional.
+**Decision.** No model calls anywhere. If semantic analysis arrives, it will run through an installed
+agent and stay optional.
 
 **Why.** The core must work offline, in CI, in an air-gapped environment, and produce the same
 answer twice. A tool that needs a key to tell you a file is missing is a tool that stops working at

@@ -388,7 +388,7 @@ titles, scopes or unsafe paths, `3` for an unsupported schema.
 ## Programmatic use
 
 The same core is exported from the package, so a script can run the checks without parsing terminal
-output:
+output. The [programmatic API](/reference/api) reference lists every export.
 
 ```ts
 import { Repository, createCheckContext, runChecks } from "syngraphe";
